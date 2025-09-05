@@ -5,11 +5,13 @@
 #include "utils/IdleMonitor.h"
 
 OverlayWindow::OverlayWindow(HINSTANCE hInstance, std::wstring className)
-    : hInstance_(hInstance), className_(std::move(className)) {
+    : hInstance_(hInstance), className_(std::move(className))
+{
     InitializeMessageHandlers();
 }
 
-OverlayWindow::~OverlayWindow() {
+OverlayWindow::~OverlayWindow()
+{
     Destroy();
 }
 
@@ -33,18 +35,22 @@ bool OverlayWindow::RegisterClass()
     return classRegistered_;
 }
 
-void OverlayWindow::OnCreate(HWND hwndParent) noexcept {
+void OverlayWindow::OnCreate(HWND hwndParent) noexcept
+{
     parentHwnd_ = hwndParent;
 }
 
-void OverlayWindow::OnDestroy() noexcept {
+void OverlayWindow::OnDestroy() noexcept
+{
     Destroy();
 }
 
-bool OverlayWindow::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* outResult) noexcept {
-    if(msg != WM_IDLE_TIMEOUT)
+bool OverlayWindow::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* outResult) noexcept
+{
+    if (msg != WM_IDLE_TIMEOUT)
     {
-        if (!isVisible_ || !hwnd_) {
+        if (!isVisible_ || !hwnd_)
+        {
             return false;
         }
     }
@@ -61,7 +67,8 @@ void OverlayWindow::InitializeMessageHandlers() {
             return 0;
         });
 
-    messageHandler_.RegisterHandler(WM_CREATE, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
+    messageHandler_.RegisterHandler(WM_CREATE, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    {
         spriteState_ = new SpriteState;
 
         RECT clientRect;
@@ -121,7 +128,8 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
-    messageHandler_.RegisterHandler(WM_PAINT, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
+    messageHandler_.RegisterHandler(WM_PAINT, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    {
         PAINTSTRUCT ps;
         HDC hdc = ::BeginPaint(hwnd, &ps);
 
@@ -131,9 +139,12 @@ void OverlayWindow::InitializeMessageHandlers() {
         ::FillRect(hdc, &client, blackBrush);
         ::DeleteObject(blackBrush);
 
-        if (spriteState_) {
-            const RECT r{spriteState_->x, spriteState_->y,
-                   spriteState_->x + spriteState_->w, spriteState_->y + spriteState_->h};
+        if (spriteState_)
+        {
+            const RECT r{
+                spriteState_->x, spriteState_->y,
+                spriteState_->x + spriteState_->w, spriteState_->y + spriteState_->h
+            };
             HBRUSH redBrush = ::CreateSolidBrush(RGB(200, 40, 40));
             ::FillRect(hdc, &r, redBrush);
             ::DeleteObject(redBrush);
@@ -143,11 +154,13 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
-    messageHandler_.RegisterHandler(WM_ERASEBKGND, [](HWND, WPARAM, LPARAM) -> LRESULT {
+    messageHandler_.RegisterHandler(WM_ERASEBKGND, [](HWND, WPARAM, LPARAM) -> LRESULT
+    {
         return 1;
     });
 
-    messageHandler_.RegisterHandler(WM_DESTROY, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
+    messageHandler_.RegisterHandler(WM_DESTROY, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    {
         ::KillTimer(hwnd, OVERLAY_ANIM_TIMER);
         ::KillTimer(hwnd, 2002);
         delete spriteState_;
@@ -178,8 +191,9 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
-    const auto inputHandler = [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
-        if(!ignoreFirstInput_)
+    const auto inputHandler = [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    {
+        if (!ignoreFirstInput_)
         {
             Destroy();
         }
@@ -257,24 +271,30 @@ void OverlayWindow::Destroy()
     isVisible_ = false;
 }
 
-LRESULT CALLBACK OverlayWindow::StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    OverlayWindow* self = nullptr;
+LRESULT CALLBACK OverlayWindow::StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    OverlayWindow *self = nullptr;
 
-    if (msg == WM_NCCREATE) {
-        const auto* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
-        self = static_cast<OverlayWindow*>(cs->lpCreateParams);
+    if (msg == WM_NCCREATE)
+    {
+        const auto *cs = reinterpret_cast<CREATESTRUCTW *>(lParam);
+        self = static_cast<OverlayWindow *>(cs->lpCreateParams);
         ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
         self->hwnd_ = hwnd;
-    } else {
-        self = reinterpret_cast<OverlayWindow*>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
+    else
+    {
+        self = reinterpret_cast<OverlayWindow *>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }
 
     return self ? self->HandleMessage(hwnd, msg, wParam, lParam) : ::DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-LRESULT OverlayWindow::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT OverlayWindow::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
     const LRESULT result = messageHandler_.HandleMessage(hwnd, msg, wParam, lParam);
-    if (result != win32::HashMapMessageHandler::MSG_NOT_HANDLED) {
+    if (result != win32::HashMapMessageHandler::MSG_NOT_HANDLED)
+    {
         return result;
     }
 

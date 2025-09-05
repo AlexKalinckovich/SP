@@ -1,19 +1,24 @@
 #include <algorithm>
 #include "utils/ComponentManager.h"
 
-void ComponentManager::AddComponent(std::shared_ptr<ui::IComponent> component) {
-    if (component) {
+void ComponentManager::AddComponent(std::shared_ptr<ui::IComponent> component)
+{
+    if (component)
+    {
         components_.push_back(std::move(component));
     }
 }
 
-bool ComponentManager::RemoveComponent(const ui::IComponent* component) {
+bool ComponentManager::RemoveComponent(const ui::IComponent* component)
+{
     const auto it = std::ranges::remove_if(components_,
-                                           [component](const std::shared_ptr<ui::IComponent>& up) {
+                                           [component](const std::shared_ptr<ui::IComponent> &up)
+                                           {
                                                return up.get() == component;
                                            }).begin();
 
-    if (it == components_.end()) {
+    if (it == components_.end())
+    {
         return false;
     }
 
@@ -46,8 +51,10 @@ void ComponentManager::OnDestroy()
 bool ComponentManager::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* outResult)
 {
     return std::ranges::any_of(components_, [&](const std::shared_ptr<ui::IComponent>& up) -> bool
+
     {
-        if (up && up->OnMessage(hwnd, msg, wParam, lParam, outResult)) {
+        if (up && up->OnMessage(hwnd, msg, wParam, lParam, outResult))
+        {
             return true;
         }
         return false;

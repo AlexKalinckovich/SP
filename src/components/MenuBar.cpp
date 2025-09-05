@@ -5,10 +5,13 @@
 
 MenuBar::MenuBar() = default;
 
-MenuBar::~MenuBar() {
+MenuBar::~MenuBar()
+{
     Destroy();
 }
-bool MenuBar::Create() {
+
+bool MenuBar::Create()
+{
     if (hMenuBar_ != nullptr)
     {
         Destroy();
@@ -27,8 +30,10 @@ bool MenuBar::Create() {
     return true;
 }
 
-void MenuBar::Destroy() {
-    if (hMenuBar_ != nullptr) {
+void MenuBar::Destroy()
+{
+    if (hMenuBar_ != nullptr)
+    {
         ::DestroyMenu(hMenuBar_);
         hMenuBar_ = nullptr;
     }
@@ -51,7 +56,8 @@ bool MenuBar::CreateFileMenu(HMENU hMenu)
     return true;
 }
 
-bool MenuBar::CreateEditMenu(HMENU hMenu) {
+bool MenuBar::CreateEditMenu(HMENU hMenu)
+{
     HMENU hEdit = ::CreatePopupMenu();
     if (hEdit == nullptr)
     {

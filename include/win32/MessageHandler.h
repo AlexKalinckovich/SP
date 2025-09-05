@@ -6,7 +6,6 @@
 #define MESSAGEHANDLER_H
 #include <windows.h>
 #include <functional>
-#include <unordered_map>
 
 namespace win32
 {

@@ -39,7 +39,7 @@ void AboutDialog::InitializeMessageHandlers()
 
     messageHandler_.RegisterHandler(WM_COMMAND, [this](HWND,WPARAM wParam, LPARAM) -> LRESULT
     {
-        const int cmdId = static_cast<int>(LOWORD(wParam));
+        const int cmdId = LOWORD(wParam);
         if (cmdId == ID_ABOUT_OK)
         {
             ::DestroyWindow(dlgWindow_);
@@ -119,9 +119,9 @@ void AboutDialog::CreateDialogWindow()
         hInstance_,
         this
     );
-    
-    if (dlgWindow_) {
-        // Show the window after creating it
+
+    if (dlgWindow_)
+    {
         ::ShowWindow(dlgWindow_, SW_SHOW);
         ::UpdateWindow(dlgWindow_);
     }
@@ -134,20 +134,12 @@ void AboutDialog::RunMessageLoop() const
     MSG msg{};
     while (::IsWindow(dlgWindow_) && ::GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
-        // Check if the message is for the dialog or its children
         if (msg.hwnd == dlgWindow_ || ::IsChild(dlgWindow_, msg.hwnd))
         {
             ::TranslateMessage(&msg);
             ::DispatchMessageW(&msg);
         }
-        else
-        {
-            // Dispatch other messages normally
-            ::TranslateMessage(&msg);
-            ::DispatchMessageW(&msg);
-        }
-        
-        // If the dialog window was destroyed, break out of the loop
+
         if (!::IsWindow(dlgWindow_)) {
             break;
         }
@@ -166,7 +158,6 @@ LRESULT CALLBACK AboutDialog::StaticDlgProc(HWND hwnd, UINT msg, WPARAM wParam, 
         const auto *cs = reinterpret_cast<CREATESTRUCTW *>(lParam);
         self = static_cast<AboutDialog *>(cs->lpCreateParams);
         ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
-        // Set dlgWindow_ immediately
         self->dlgWindow_ = hwnd;
     }
     else
