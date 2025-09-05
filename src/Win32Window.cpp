@@ -118,66 +118,7 @@ namespace win32
             return 0;
         });
 
-        messageHandler_.RegisterHandler(WM_SIZE, [this](HWND hwnd, WPARAM wParam, LPARAM lParam) -> LRESULT
-        {
-            LOWORD(lParam);
-            HIWORD(lParam);
 
-            switch (wParam)
-            {
-                case SIZE_MINIMIZED:
-                    std::cout << "Window minimized - pausing idle monitor" << std::endl;
-                    if (idleMonitor_)
-                    {
-                        idleMonitor_->Pause();
-                    }
-                    if (overlayWindow_ && overlayWindow_->IsVisible())
-                    {
-                        overlayWindow_->Destroy();
-                    }
-                    break;
-
-                case SIZE_RESTORED:
-                    std::cout << "Window restored - resuming idle monitor" << std::endl;
-                    if (idleMonitor_)
-                    {
-                        idleMonitor_->Resume();
-                    }
-                    break;
-
-                case SIZE_MAXIMIZED:
-                    std::cout << "Window maximized" << std::endl;
-                    break;
-                default: return 0;
-            }
-
-            return 0;
-        });
-
-        messageHandler_.RegisterHandler(WM_ACTIVATE, [this](HWND hwnd, WPARAM wParam, LPARAM lParam) -> LRESULT
-        {
-            if (LOWORD(wParam) == WA_INACTIVE)
-            {
-                std::cout << "Window deactivated - pausing idle monitor" << std::endl;
-                if (idleMonitor_)
-                {
-                    idleMonitor_->Pause();
-                }
-                if (overlayWindow_ && overlayWindow_->IsVisible())
-                {
-                    overlayWindow_->Destroy();
-                }
-            }
-            else
-            {
-                std::cout << "Window activated - resuming idle monitor" << std::endl;
-                if (idleMonitor_)
-                {
-                    idleMonitor_->Resume();
-                }
-            }
-            return 0;
-        });
     }
 
     Win32Window::~Win32Window() noexcept
@@ -259,7 +200,7 @@ namespace win32
     }
 
     void Win32Window::AddComponent(std::shared_ptr<ui::IComponent> c) noexcept {
-        componentManager_.AddComponent(c);
+        componentManager_.AddComponent(std::move(c));
     }
 
     bool Win32Window::RemoveComponent(const ui::IComponent* cptr) noexcept {

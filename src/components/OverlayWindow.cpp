@@ -80,8 +80,10 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
-    messageHandler_.RegisterHandler(WM_TIMER, [this](HWND hwnd, WPARAM wParam, LPARAM) -> LRESULT {
-        if (wParam == OVERLAY_ANIM_TIMER && spriteState_) {
+    messageHandler_.RegisterHandler(WM_TIMER, [this](HWND hwnd, WPARAM wParam, LPARAM) -> LRESULT
+    {
+        if (wParam == OVERLAY_ANIM_TIMER && spriteState_)
+        {
             RECT clientRect;
             ::GetClientRect(hwnd, &clientRect);
             const int width = clientRect.right - clientRect.left;
@@ -90,24 +92,29 @@ void OverlayWindow::InitializeMessageHandlers() {
             spriteState_->x += spriteState_->dx;
             spriteState_->y += spriteState_->dy;
 
-            if (spriteState_->x < 0) {
+            if (spriteState_->x < 0)
+            {
                 spriteState_->x = 0;
                 spriteState_->dx = -spriteState_->dx;
-            } else if (spriteState_->x + spriteState_->w > width) {
+            } else if (spriteState_->x + spriteState_->w > width)
+            {
                 spriteState_->x = width - spriteState_->w;
                 spriteState_->dx = -spriteState_->dx;
             }
 
-            if (spriteState_->y < 0) {
+            if (spriteState_->y < 0)
+            {
                 spriteState_->y = 0;
                 spriteState_->dy = -spriteState_->dy;
-            } else if (spriteState_->y + spriteState_->h > height) {
+            } else if (spriteState_->y + spriteState_->h > height)
+            {
                 spriteState_->y = height - spriteState_->h;
                 spriteState_->dy = -spriteState_->dy;
             }
 
             ::InvalidateRect(hwnd, nullptr, TRUE);
-        } else if (wParam == 2002) {
+        } else if (wParam == 2002)
+        {
             ignoreFirstInput_ = false;
             ::KillTimer(hwnd, 2002);
         }
@@ -150,6 +157,27 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
+    messageHandler_.RegisterHandler(WM_SIZE, [this](HWND, WPARAM, LPARAM) -> LRESULT
+    {
+        if(hwnd_ && isVisible_)
+        {
+            this->Destroy();
+        }
+        return 0;
+    });
+
+    messageHandler_.RegisterHandler(WM_ACTIVATE, [this](HWND, WPARAM wParam, LPARAM lParam) -> LRESULT
+    {
+        if (LOWORD(wParam) == WA_INACTIVE)
+        {
+            if (hwnd_ && isVisible_)
+            {
+                this->Destroy();
+            }
+        }
+        return 0;
+    });
+
     const auto inputHandler = [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
         if(!ignoreFirstInput_)
         {
@@ -164,9 +192,6 @@ void OverlayWindow::InitializeMessageHandlers() {
     messageHandler_.RegisterHandler(WM_MBUTTONDOWN, inputHandler);
     messageHandler_.RegisterHandler(WM_KEYDOWN, inputHandler);
     messageHandler_.RegisterHandler(WM_SYSKEYDOWN, inputHandler);
-    messageHandler_.RegisterHandler(WM_SIZE, inputHandler);
-    messageHandler_.RegisterHandler(WM_CANCELMODE, inputHandler);
-
 }
 
 bool OverlayWindow::Create()
@@ -220,10 +245,13 @@ bool OverlayWindow::Create()
     return true;
 }
 
-void OverlayWindow::Destroy() {
-    if (hwnd_) {
+void OverlayWindow::Destroy()
+{
+    if (hwnd_)
+    {
         ::KillTimer(hwnd_, OVERLAY_ANIM_TIMER);
         ::DestroyWindow(hwnd_);
+        ::PostMessageW(parentHwnd_, WM_OVERLAY_WINDOW_DESTROY, 0, 0);
         hwnd_ = nullptr;
     }
     isVisible_ = false;

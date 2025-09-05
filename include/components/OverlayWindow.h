@@ -8,6 +8,7 @@
 #include <iostream>
 #include "win32/HashMapMessageHandler.h"
 
+#define WM_OVERLAY_WINDOW_DESTROY (WM_USER + 101)
 
 class OverlayWindow : public ui::IComponent {
 public:
