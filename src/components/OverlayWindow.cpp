@@ -18,7 +18,8 @@ OverlayWindow::~OverlayWindow()
 bool OverlayWindow::RegisterClass()
 {
     WNDCLASSEXW wc{};
-    if (::GetClassInfoExW(hInstance_, className_.c_str(), &wc)) {
+    if (::GetClassInfoExW(hInstance_, className_.c_str(), &wc))
+    {
         classRegistered_ = true;
         return true;
     }
@@ -45,7 +46,7 @@ void OverlayWindow::OnDestroy() noexcept
     Destroy();
 }
 
-bool OverlayWindow::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* outResult) noexcept
+bool OverlayWindow::OnMessage(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, LRESULT* outResult) noexcept
 {
     if (msg != WM_IDLE_TIMEOUT)
     {
@@ -59,13 +60,16 @@ bool OverlayWindow::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
     return *outResult != win32::HashMapMessageHandler::MSG_NOT_HANDLED;
 }
 
-void OverlayWindow::InitializeMessageHandlers() {
-    messageHandler_.RegisterHandler(WM_IDLE_TIMEOUT, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT {
-            if (!isVisible_) {
-                Create();
-            }
-            return 0;
-        });
+void OverlayWindow::InitializeMessageHandlers()
+{
+    messageHandler_.RegisterHandler(WM_IDLE_TIMEOUT, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    {
+        if (!isVisible_)
+        {
+            Create();
+        }
+        return 0;
+    });
 
     messageHandler_.RegisterHandler(WM_CREATE, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
     {
@@ -73,7 +77,7 @@ void OverlayWindow::InitializeMessageHandlers() {
 
         RECT clientRect;
         ::GetClientRect(hwnd, &clientRect);
-        const int width = clientRect.right - clientRect.left;
+        const int width  = clientRect.right  - clientRect.left;
         const int height = clientRect.bottom - clientRect.top;
 
         spriteState_->w = 48;
@@ -103,7 +107,8 @@ void OverlayWindow::InitializeMessageHandlers() {
             {
                 spriteState_->x = 0;
                 spriteState_->dx = -spriteState_->dx;
-            } else if (spriteState_->x + spriteState_->w > width)
+            }
+            else if (spriteState_->x + spriteState_->w > width)
             {
                 spriteState_->x = width - spriteState_->w;
                 spriteState_->dx = -spriteState_->dx;
@@ -113,7 +118,8 @@ void OverlayWindow::InitializeMessageHandlers() {
             {
                 spriteState_->y = 0;
                 spriteState_->dy = -spriteState_->dy;
-            } else if (spriteState_->y + spriteState_->h > height)
+            }
+            else if (spriteState_->y + spriteState_->h > height)
             {
                 spriteState_->y = height - spriteState_->h;
                 spriteState_->dy = -spriteState_->dy;
@@ -141,7 +147,8 @@ void OverlayWindow::InitializeMessageHandlers() {
 
         if (spriteState_)
         {
-            const RECT r{
+            const RECT r
+            {
                 spriteState_->x, spriteState_->y,
                 spriteState_->x + spriteState_->w, spriteState_->y + spriteState_->h
             };
@@ -172,7 +179,7 @@ void OverlayWindow::InitializeMessageHandlers() {
 
     messageHandler_.RegisterHandler(WM_SIZE, [this](HWND, WPARAM, LPARAM) -> LRESULT
     {
-        if(hwnd_ && isVisible_)
+        if (hwnd_ && isVisible_)
         {
             this->Destroy();
         }
@@ -191,7 +198,7 @@ void OverlayWindow::InitializeMessageHandlers() {
         return 0;
     });
 
-    const auto inputHandler = [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    const auto inputHandler = [this](HWND, WPARAM, LPARAM) -> LRESULT
     {
         if (!ignoreFirstInput_)
         {
@@ -210,29 +217,28 @@ void OverlayWindow::InitializeMessageHandlers() {
 
 bool OverlayWindow::Create()
 {
-    if (!parentHwnd_)
+    if (!parentHwnd_) { return false; }
+
+    RECT wndRect;
+    if (!::GetWindowRect(parentHwnd_, &wndRect))
     {
+        std::cout << "GetWindowRect failed: " << GetLastError() << std::endl;
         return false;
     }
 
-    RECT clientRect;
-    ::GetClientRect(parentHwnd_, &clientRect);
+    const int width = wndRect.right - wndRect.left;
+    const int height = wndRect.bottom - wndRect.top;
+    const int x = wndRect.left;
+    const int y = wndRect.top;
 
-    POINT topLeft = {0, 0};
-    POINT bottomRight = {clientRect.right, clientRect.bottom};
-    ::ClientToScreen(parentHwnd_, &topLeft);
-    ::ClientToScreen(parentHwnd_, &bottomRight);
-
-    const int width = bottomRight.x - topLeft.x;
-    const int height = bottomRight.y - topLeft.y;
-
-    hwnd_ = ::CreateWindowEx(
-        WS_EX_LAYERED | WS_EX_TRANSPARENT,
+    constexpr DWORD exStyle = WS_EX_LAYERED | WS_EX_TOPMOST;
+    hwnd_ = ::CreateWindowExW(
+        exStyle,
         className_.c_str(),
         nullptr,
-        WS_POPUP,
-        topLeft.x, topLeft.y, width, height,
-        parentHwnd_,
+        WS_POPUP | WS_VISIBLE,
+        x, y, width, height,
+        nullptr,
         nullptr,
         hInstance_,
         this
@@ -240,15 +246,33 @@ bool OverlayWindow::Create()
 
     if (!hwnd_)
     {
-        const DWORD err = GetLastError();
-        std::cout << "Failed to create overlay window " << err << std::endl;
+        const DWORD err = ::GetLastError();
+        std::cout << "Failed to create overlay window: " << err << std::endl;
         return false;
     }
 
     ::SetLayeredWindowAttributes(hwnd_, 0, 128, LWA_ALPHA);
 
-    ::ShowWindow(hwnd_, SW_SHOW);
-    ::UpdateWindow(hwnd_);
+    ::SetWindowPos(hwnd_, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW | SWP_NOACTIVATE);
+
+    if (HWND currentForeground = ::GetForegroundWindow())
+    {
+        const DWORD fgThread = ::GetWindowThreadProcessId(currentForeground, nullptr);
+        const DWORD thisThread = ::GetCurrentThreadId();
+        ::AttachThreadInput(thisThread, fgThread, TRUE);
+
+        ::SetForegroundWindow(hwnd_);
+        ::SetFocus(hwnd_);
+
+        ::AttachThreadInput(thisThread, fgThread, FALSE);
+    }
+    else
+    {
+        ::SetForegroundWindow(hwnd_);
+        ::SetFocus(hwnd_);
+    }
+
+    ::SetCapture(hwnd_);
 
     ignoreFirstInput_ = true;
     isVisible_ = true;
@@ -258,6 +282,7 @@ bool OverlayWindow::Create()
     std::cout << "Overlay window created: " << hwnd_ << std::endl;
     return true;
 }
+
 
 void OverlayWindow::Destroy()
 {

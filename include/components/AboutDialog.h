@@ -33,7 +33,6 @@ class AboutDialog : public ui::IComponent
         static LRESULT CALLBACK StaticDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         LRESULT DlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-        LRESULT CreateHandler(WPARAM, LPARAM) const;
         void InitializeMessageHandlers();
 };
 

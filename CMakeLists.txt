@@ -21,6 +21,12 @@ add_executable(SP WIN32
         include/win32/HashMapMessageHandler.h
         include/utils/ComponentManager.h
         src/utils/ComponentManager.cpp
+        include/components/TextEditorComponent.h
+        src/components/TextEditorComponent.cpp
+        include/utils/FileManager.h
+        include/utils/EncodingDetector.h
+        src/utils/EncodingDetector.cpp
+        src/utils/FileManager.cpp
 )
 
 # Подключаем include/ директорию (заголовки — там).

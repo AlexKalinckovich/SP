@@ -19,7 +19,7 @@ IdleMonitor::~IdleMonitor()
 
 void IdleMonitor::InitializeMessageHandlers()
 {
-    messageHandler_.RegisterHandler(WM_SIZE, [this](HWND hwnd, WPARAM wParam, LPARAM lParam) -> LRESULT
+    messageHandler_.RegisterHandler(WM_SIZE, [this](HWND, const WPARAM wParam, const LPARAM lParam) -> LRESULT
     {
         LOWORD(lParam);
         HIWORD(lParam);
