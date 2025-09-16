@@ -27,6 +27,8 @@ add_executable(SP WIN32
         include/utils/EncodingDetector.h
         src/utils/EncodingDetector.cpp
         src/utils/FileManager.cpp
+        include/utils/ErrorFormater.h
+        src/utils/ErrorFormater.cpp
 )
 
 # Подключаем include/ директорию (заголовки — там).

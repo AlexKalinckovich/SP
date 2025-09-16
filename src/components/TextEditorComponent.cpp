@@ -11,6 +11,8 @@
 
 #include "utils/FileManager.h"
 
+#define CALCULATE_NULL_TERMINATED_STRING (-1)
+
 
 TextEditorComponent::TextEditorComponent(HINSTANCE hInstance)
     : hInstance_(hInstance)
@@ -54,7 +56,7 @@ void TextEditorComponent::InitializeMessageHandlers()
         return FALSE;
     });
 
-    messageHandler_.RegisterHandler(WM_COMMAND, [this](HWND hwnd, WPARAM wParam, LPARAM lParam) -> LRESULT
+    messageHandler_.RegisterHandler(WM_COMMAND, [this](HWND hwnd, const WPARAM wParam, const LPARAM lParam) -> LRESULT
     {
         if (lParam == reinterpret_cast<LPARAM>(hEditControl_))
         {
@@ -177,7 +179,7 @@ void TextEditorComponent::ResizeEditControl(const int width, const int height) c
 
 bool TextEditorComponent::LoadFile() const
 {
-    const FileManager::FileLoadResult res = FileManager::LoadFile();
+    const FileManager::FileLoadResult res = FileManager::LoadFile(hEditControl_);
     if (!hEditControl_ || !IsWindow(hEditControl_))
     {
         SetLastError(ERROR_INVALID_WINDOW_HANDLE);
@@ -185,9 +187,9 @@ bool TextEditorComponent::LoadFile() const
     }
 
     const std::string content = res.content;
-    const int wideSize = MultiByteToWideChar(CP_UTF8, 0, content.c_str(), -1, nullptr, 0);
+    const int wideSize = MultiByteToWideChar(CP_UTF8, 0, content.c_str(), CALCULATE_NULL_TERMINATED_STRING, nullptr, 0);
     std::wstring wideContent(wideSize, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, content.c_str(), -1, &wideContent[0], wideSize);
+    MultiByteToWideChar(CP_UTF8, 0, content.c_str(), CALCULATE_NULL_TERMINATED_STRING, &wideContent[0], wideSize);
 
     ::SendMessageW(hEditControl_, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(wideContent.c_str()));
 
@@ -211,19 +213,19 @@ bool TextEditorComponent::SaveFile() const
     FileManager::FileSaveResult saveResult;
     if (currentFilePath_.empty())
     {
-        saveResult = FileManager::SaveFile(utf8Content, SaveEncoding::UTF8);
+        saveResult = FileManager::SaveFile(hEditControl_, utf8Content, SaveEncoding::UTF8);
     }
     else
     {
         saveResult = FileManager::SaveFile(utf8Content, currentFilePath_, SaveEncoding::UTF8);
     }
 
-    if (saveResult.success)
+    if (saveResult.isSuccess)
     {
         const_cast<TextEditorComponent *>(this)->MarkAsSaved();
     }
 
-    return saveResult.success;
+    return saveResult.isSuccess;
 }
 
 void TextEditorComponent::SetFont(const std::wstring& fontName, const int fontSize)
@@ -374,12 +376,12 @@ bool TextEditorComponent::SaveChanges()
     const std::string utf8Content = FileManager::ConvertWStringToStdString(content);
     const FileManager::FileSaveResult result = FileManager::SaveFile(utf8Content, currentFilePath_, SaveEncoding::UTF8);
 
-    if (result.success)
+    if (result.isSuccess)
     {
         MarkAsSaved();
     }
 
-    return result.success;
+    return result.isSuccess;
 }
 
 void TextEditorComponent::HandleTextChange()

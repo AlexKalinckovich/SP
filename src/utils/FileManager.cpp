@@ -1,19 +1,30 @@
 
 #include "utils/FileManager.h"
 #include <commdlg.h>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
 
 #include "utils/EncodingDetector.h"
+#include "utils/ErrorFormater.h"
 
 #define NO_CONTENT ""
 #define NO_FILE_PATH L""
 #define NO_ERROR_CODE ""
 #define WRITE_CHUNK_SIZE 4096
-FileManager::FileLoadResult FileManager::LoadFile()
+#define MAX_FILE_PATH 1024
+#define USER_CANCEL_DIALOG_ERROR 1
+#define NO_SHARING_FILE_TO_OTHER_PROCESS_UNTIL_CLOSE 0
+
+#define CALCULATE_NULL_TERMINATED_STRING (-1)
+#define NO_OUTPUT_BUFFER nullptr
+#define ZERO_MULTI_BYTE 0
+#define NO_CHILD_DESCRIPTOR_INHERITANCE nullptr
+
+FileManager::FileLoadResult FileManager::LoadFile(HWND hwnd)
 {
-    const std::optional<std::wstring> filepath = OpenFileDialog();
+    const std::optional<std::wstring> filepath = OpenFileDialog(hwnd);
     FileLoadResult result;
     if(!filepath.has_value())
     {
@@ -50,26 +61,32 @@ FileManager::FileLoadResult FileManager::LoadFile(const std::wstring& filePath)
     return result;
 }
 
-std::optional<std::wstring> FileManager::OpenFileDialog()
+std::optional<std::wstring> FileManager::OpenFileDialog(HWND hwnd)
 {
-    wchar_t filePath[MAX_PATH] = {};
-    std::optional<std::wstring> result = std::nullopt;
+    std::vector<WCHAR> buffer(MAX_FILE_PATH, L'\0');
 
     OPENFILENAMEW ofn = {};
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = nullptr;
-    ofn.lpstrFile = filePath;
-    ofn.nMaxFile = MAX_PATH;
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = buffer.data();
+    ofn.nMaxFile = static_cast<DWORD>(buffer.size());
     ofn.lpstrFilter = L"All Files\0*.*\0Text Files\0*.txt\0";
     ofn.nFilterIndex = 1;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
+    std::optional<std::wstring> result = std::nullopt;
     if (GetOpenFileNameW(&ofn) == TRUE)
     {
-        result = std::wstring(filePath);
+        result = std::wstring(buffer.data());
     }
-
-
+    else
+    {
+        const DWORD errorCode = CommDlgExtendedError();
+        if (errorCode != 0 && errorCode != USER_CANCEL_DIALOG_ERROR)
+        {
+            std::cerr << "Open file dialog error: " << ErrorFormater::GetErrorString(errorCode) << '\n';
+        }
+    }
     return result;
 }
 
@@ -77,50 +94,56 @@ std::vector<UCHAR> FileManager::ReadFileContent(const std::wstring& filePath, st
 {
     std::vector<UCHAR> buffer;
 
-    HANDLE hFile = CreateFileW(
+    const HandleGuard file(CreateFileW(
         filePath.c_str(),
         GENERIC_READ,
         FILE_SHARE_READ,
-        nullptr,
+        NO_CHILD_DESCRIPTOR_INHERITANCE,
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
         nullptr
+    ));
+
+    if (file.get() == INVALID_HANDLE_VALUE)
+    {
+        outErrorMessage = "Failed to open file: " + ErrorFormater::GetLastErrorString();
+        return buffer;
+    }
+
+    LARGE_INTEGER fileSizeLi;
+    if (!GetFileSizeEx(file.get(), &fileSizeLi))
+    {
+        outErrorMessage = "Failed to get file size: " + ErrorFormater::GetLastErrorString();
+        return buffer;
+    }
+
+    if (fileSizeLi.QuadPart <= 0)
+        return buffer;
+
+    if (fileSizeLi.QuadPart > MAXDWORD)
+    {
+        outErrorMessage = "File too large for single read operation";
+        return buffer;
+    }
+
+    const auto fileSize = static_cast<size_t>(fileSizeLi.QuadPart);
+    buffer.resize(fileSize);
+
+    DWORD bytesRead = 0;
+    const BOOL readResult = ReadFile(
+        file.get(),
+        buffer.data(),
+        static_cast<DWORD>(fileSize),
+        &bytesRead,
+        nullptr
     );
-    if (hFile == INVALID_HANDLE_VALUE)
+
+    if (!readResult || bytesRead != fileSize)
     {
-        outErrorMessage = "Failed to open file: " + GetLastErrorString();
-        return buffer;
+        outErrorMessage = "Failed to read file: " + ErrorFormater::GetLastErrorString();
+        buffer.clear();
     }
 
-    LARGE_INTEGER fileSize;
-    if (!GetFileSizeEx(hFile, &fileSize))
-    {
-        outErrorMessage = "Failed to get file size: " + GetLastErrorString();
-        CloseHandle(hFile);
-        return buffer;
-    }
-
-    if (fileSize.QuadPart > 0)
-    {
-        const auto bufferSize = static_cast<size_t>(fileSize.QuadPart);
-        buffer.reserve(bufferSize);
-
-        std::vector<UCHAR> chunk(READ_CHUNK_SIZE);
-        DWORD bytesRead = 0;
-
-        while (ReadFile(hFile, chunk.data(), READ_CHUNK_SIZE, &bytesRead, nullptr) && bytesRead > 0)
-        {
-            buffer.insert(buffer.end(), chunk.begin(), chunk.begin() + bytesRead);
-        }
-
-        if (GetLastError() != ERROR_SUCCESS && GetLastError() != ERROR_HANDLE_EOF)
-        {
-            outErrorMessage = "Failed to read file: " + GetLastErrorString();
-            buffer.clear();
-        }
-    }
-
-    CloseHandle(hFile);
     return buffer;
 }
 
@@ -153,29 +176,9 @@ FileManager::FileLoadResult FileManager::ProcessFileContent(const std::vector<UC
     return result;
 }
 
-std::string FileManager::GetLastErrorString()
+FileManager::FileSaveResult FileManager::SaveFile(HWND hwnd, const std::string& content, const SaveEncoding encoding)
 {
-    const DWORD errorCode = GetLastError();
-    if (errorCode == 0)
-    {
-        return "Unknown error";
-    }
-
-    LPSTR messageBuffer = nullptr;
-    const size_t size = FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        reinterpret_cast<LPSTR>(&messageBuffer), 0, nullptr);
-
-    std::string result(messageBuffer, size);
-    LocalFree(messageBuffer);
-
-    return result;
-}
-
-FileManager::FileSaveResult FileManager::SaveFile(const std::string& content, const SaveEncoding encoding)
-{
-    const std::optional<std::wstring> filePath = SaveFileDialog();
+    const std::optional<std::wstring> filePath = SaveFileDialog(hwnd);
     if (!filePath.has_value())
     {
         return {"No file selected", false};
@@ -183,7 +186,7 @@ FileManager::FileSaveResult FileManager::SaveFile(const std::string& content, co
     return SaveFile(content, filePath.value(), encoding);
 }
 
-FileManager::FileSaveResult FileManager::SaveFile(const std::string& content, const std::wstring& filePath, const SaveEncoding encoding)
+FileManager::FileSaveResult FileManager::SaveFile(const std::string &content, const std::wstring &filePath, const SaveEncoding encoding)
 {
     if (filePath.empty())
     {
@@ -206,15 +209,15 @@ FileManager::FileSaveResult FileManager::SaveFile(const std::string& content, co
     return {"", true};
 }
 
-std::optional<std::wstring> FileManager::SaveFileDialog()
+std::optional<std::wstring> FileManager::SaveFileDialog(HWND hwnd)
 {
-    wchar_t filePath[MAX_PATH] = {};
+    std::vector<WCHAR> buffer(MAX_FILE_PATH, L'\0');
 
     OPENFILENAMEW ofn = {};
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = nullptr;
-    ofn.lpstrFile = filePath;
-    ofn.nMaxFile = MAX_PATH;
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = buffer.data();
+    ofn.nMaxFile = static_cast<DWORD>(buffer.size());
     ofn.lpstrFilter = L"All Files\0*.*\0Text Files\0*.txt\0UTF-8 Files\0*.txt\0UTF-16 Files\0*.txt\0";
     ofn.nFilterIndex = 1;
     ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_HIDEREADONLY;
@@ -222,7 +225,15 @@ std::optional<std::wstring> FileManager::SaveFileDialog()
     std::optional<std::wstring> result = std::nullopt;
     if (GetSaveFileNameW(&ofn) == TRUE)
     {
-        result = std::wstring(filePath);
+        result = std::wstring(buffer.data());
+    }
+    else
+    {
+        const DWORD errorCode = CommDlgExtendedError();
+        if (errorCode != 0 && errorCode != USER_CANCEL_DIALOG_ERROR)
+        {
+            std::cerr << "Save file dialog error: " << ErrorFormater::GetErrorString(errorCode) << '\n';
+        }
     }
 
     return result;
@@ -230,52 +241,75 @@ std::optional<std::wstring> FileManager::SaveFileDialog()
 
 bool FileManager::WriteFileContent(const std::wstring& filePath, const std::vector<UCHAR>& buffer, std::string& errorMessage)
 {
-    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_WRITE, 0,
-                               nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE)
+    HandleGuard file(CreateFileW(
+        filePath.c_str(),
+        GENERIC_WRITE,
+         NO_SHARING_FILE_TO_OTHER_PROCESS_UNTIL_CLOSE,
+        NO_CHILD_DESCRIPTOR_INHERITANCE,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+        nullptr
+    ));
+
+    if (file.get() == INVALID_HANDLE_VALUE)
     {
-        errorMessage = "Failed to create file: " + GetLastErrorString();
+        errorMessage = "Failed to create file: " + ErrorFormater::GetLastErrorString();
         return false;
     }
 
     bool success = true;
-    DWORD totalBytesWritten = 0;
-    constexpr DWORD chunkSize = WRITE_CHUNK_SIZE;
+    size_t totalBytesWritten = 0;
+    const size_t bufferSize = buffer.size();
 
-    while (totalBytesWritten < buffer.size())
+    while (success && totalBytesWritten < bufferSize)
     {
-        DWORD bytesToWrite = static_cast<DWORD>(std::min(static_cast<size_t>(chunkSize),
-                                                         buffer.size() - totalBytesWritten));
+        const size_t remaining = bufferSize - totalBytesWritten;
+        const size_t chunkSize = (remaining > READ_CHUNK_SIZE) ? READ_CHUNK_SIZE : remaining;
+
         DWORD bytesWritten = 0;
+        const BOOL writeResult = WriteFile(
+            file.get(),
+            buffer.data() + totalBytesWritten,
+            static_cast<DWORD>(chunkSize),
+            &bytesWritten,
+            nullptr
+        );
 
-        if (!WriteFile(hFile, buffer.data() + totalBytesWritten, bytesToWrite, &bytesWritten, nullptr))
+        if (!writeResult)
         {
-            errorMessage = "Failed to write file: " + GetLastErrorString();
+            errorMessage = "WriteFile failed: " + ErrorFormater::GetLastErrorString();
             success = false;
-            break;
         }
-
-        if (bytesWritten != bytesToWrite)
+        else if (bytesWritten != chunkSize)
         {
-            errorMessage = "Incomplete write operation";
+            errorMessage = "WriteFile wrote "     + std::to_string(bytesWritten) +
+                          " bytes instead of "    + std::to_string(chunkSize) +
+                          " (disk full?), total=" + std::to_string(totalBytesWritten);
             success = false;
-            break;
         }
-
-        totalBytesWritten += bytesWritten;
+        else
+        {
+            totalBytesWritten += bytesWritten;
+        }
     }
 
-    if (!FlushFileBuffers(hFile))
+    if (success)
     {
-        errorMessage = "Failed to flush file buffers: " + GetLastErrorString();
-        success = false;
+        if (!FlushFileBuffers(file.get()))
+        {
+            errorMessage = "Failed to flush file buffers: " + ErrorFormater::GetLastErrorString();
+            success = false;
+        }
     }
-
-    CloseHandle(hFile);
 
     if (!success)
     {
-        DeleteFileW(filePath.c_str());
+        file.close();
+        const WINBOOL result = DeleteFileW(filePath.c_str());
+        if(result != TRUE)
+        {
+            std::cout << ErrorFormater::GetLastErrorString() << '\n';
+        }
     }
 
     return success;
@@ -283,15 +317,43 @@ bool FileManager::WriteFileContent(const std::wstring& filePath, const std::vect
 
 std::string FileManager::ConvertWStringToStdString(const std::wstring& content)
 {
-    const wchar_t *wContent = content.c_str();
+    if (content.empty())
+        return {};
 
-    const size_t len = wcstombs(nullptr, wContent, 0) + 1;
-    char* buffer = new char[len];
+    const int bufferSize = WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        content.c_str(),
+        CALCULATE_NULL_TERMINATED_STRING,
+        NO_OUTPUT_BUFFER,
+        ZERO_MULTI_BYTE,
+        nullptr,
+        nullptr
+    );
 
-    wcstombs(buffer, wContent, len);
-    std::string strContent(buffer);
+    if (bufferSize == 0)
+    {
+        return {};
+    }
 
-    delete[] buffer;
+    std::vector<CHAR> buffer(bufferSize);
 
-    return strContent;
+    const int result = WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        content.c_str(),
+        CALCULATE_NULL_TERMINATED_STRING,
+        buffer.data(),
+        bufferSize,
+        nullptr,
+        nullptr
+    );
+
+    if (result == 0)
+    {
+        return {};
+    }
+
+    std::string resultStr = std::string(buffer.data(), buffer.size() - 1);
+    return resultStr;
 }
