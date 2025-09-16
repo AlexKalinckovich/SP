@@ -4,7 +4,7 @@
 
 #include "win32/Win32Window.h"
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nShowCmd)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, const int nShowCmd)
 {
     const std::wstring className = L"MySampleClass";
     const std::wstring windowTitle = L"Text redactor";

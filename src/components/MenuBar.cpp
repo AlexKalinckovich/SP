@@ -10,6 +10,38 @@ MenuBar::~MenuBar()
     Destroy();
 }
 
+
+
+bool MenuBar::CreateEditMenu(HMENU hMenu) {
+    HMENU hEdit = ::CreatePopupMenu();
+    if (hEdit == nullptr) return false;
+
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_UNDO, L"Undo\tCtrl+Z");
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_REDO, L"Redo\tCtrl+Y");
+    ::AppendMenuW(hEdit, MF_SEPARATOR, 0, nullptr);
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_CUT, L"Cut\tCtrl+X");
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_COPY, L"Copy\tCtrl+C");
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_PASTE, L"Paste\tCtrl+V");
+    ::AppendMenuW(hEdit, MF_SEPARATOR, 0, nullptr);
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_SELECT_ALL, L"Select All\tCtrl+A");
+    ::AppendMenuW(hEdit, MF_SEPARATOR, 0, nullptr);
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_FIND, L"Find\tCtrl+F");
+    ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_REPLACE, L"Replace\tCtrl+H");
+
+    ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hEdit), L"Edit");
+    return true;
+}
+
+bool MenuBar::CreateFormatMenu(HMENU hMenu) {
+    HMENU hFormat = ::CreatePopupMenu();
+    if (hFormat == nullptr) return false;
+
+    ::AppendMenuW(hFormat, MF_STRING, ID_FORMAT_FONT, L"Font...");
+    ::AppendMenuW(hFormat, MF_STRING, ID_VIEW_WORD_WRAP, L"Word Wrap");
+
+    ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hFormat), L"Format");
+    return true;
+}
 bool MenuBar::Create()
 {
     if (hMenuBar_ != nullptr)
@@ -47,30 +79,15 @@ bool MenuBar::CreateFileMenu(HMENU hMenu)
         return false;
     }
 
-    ::AppendMenuW(hFile, MF_STRING, MenuBar::ID_FILE_OPEN, L"Open...\tCtrl+O");
-    ::AppendMenuW(hFile, MF_STRING, MenuBar::ID_FILE_SAVE, L"Save...\tCtrl+S");
+    ::AppendMenuW(hFile, MF_STRING, ID_FILE_OPEN, L"Open...\tCtrl+O");
+    ::AppendMenuW(hFile, MF_STRING, ID_FILE_SAVE, L"Save...\tCtrl+S");
     ::AppendMenuW(hFile, MF_SEPARATOR, 0, nullptr);
-    ::AppendMenuW(hFile, MF_STRING, MenuBar::ID_FILE_EXIT, L"Exit");
+    ::AppendMenuW(hFile, MF_STRING, ID_FILE_EXIT, L"Exit");
 
     ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hFile), L"File");
     return true;
 }
 
-bool MenuBar::CreateEditMenu(HMENU hMenu)
-{
-    HMENU hEdit = ::CreatePopupMenu();
-    if (hEdit == nullptr)
-    {
-        return false;
-    }
-
-    ::AppendMenuW(hEdit, MF_STRING, MenuBar::ID_EDIT_CUT, L"Cut\tCtrl+X");
-    ::AppendMenuW(hEdit, MF_STRING, MenuBar::ID_EDIT_COPY, L"Copy\tCtrl+C");
-    ::AppendMenuW(hEdit, MF_STRING, MenuBar::ID_EDIT_PASTE, L"Paste\tCtrl+V");
-
-    ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hEdit), L"Edit");
-    return true;
-}
 
 bool MenuBar::CreateHelpMenu(HMENU hMenu)
 {

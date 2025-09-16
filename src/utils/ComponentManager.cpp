@@ -48,15 +48,15 @@ void ComponentManager::OnDestroy()
     }
 }
 
-bool ComponentManager::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* outResult)
+bool ComponentManager::OnMessage(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, LRESULT* outResult)
 {
-    return std::ranges::any_of(components_, [&](const std::shared_ptr<ui::IComponent>& up) -> bool
-
+    bool result = false;
+    for(const std::shared_ptr<ui::IComponent> &component: components_)
     {
-        if (up && up->OnMessage(hwnd, msg, wParam, lParam, outResult))
+        if(component)
         {
-            return true;
+            result |= component->OnMessage(hwnd,msg,wParam,lParam,outResult);
         }
-        return false;
-    });
+    }
+    return result;
 }

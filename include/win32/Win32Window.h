@@ -8,6 +8,7 @@
 #include "HashMapMessageHandler.h"
 #include "components/MenuBar.h"
 #include "components/OverlayWindow.h"
+#include "components/TextEditorComponent.h"
 #include "utils/ComponentManager.h"
 #include "utils/IdleMonitor.h"
 
@@ -36,9 +37,9 @@ namespace win32 {
             std::wstring className_;
             std::wstring windowTitle_;
             HWND hwnd_ = nullptr;
-
             MenuBar menuBar_;
             std::shared_ptr<OverlayWindow> overlayWindow_;
+            std::shared_ptr<TextEditorComponent> textEditor_;
             HashMapMessageHandler messageHandler_;
             ComponentManager componentManager_;
             std::shared_ptr<IdleMonitor> idleMonitor_;
@@ -47,6 +48,9 @@ namespace win32 {
             LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
 
             void InitializeMessageHandlers();
+
+            void CreateTextEditControl();
+
             void ShowAboutDialog() const;
             void CreateOverlayWindow();
     };
