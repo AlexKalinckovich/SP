@@ -278,8 +278,13 @@ std::vector<UCHAR> EncodingDetector::ConvertUTF8ToANSI(const std::string& utf8Co
     }
 
     std::vector<unsigned char> result(ansiLength);
-    WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), wideLength,
-                        reinterpret_cast<char *>(result.data()), ansiLength, nullptr, nullptr);
+    WideCharToMultiByte(CP_ACP,
+        0, wideStr.c_str(),
+        wideLength,
+        reinterpret_cast<char *>(result.data()),
+        ansiLength,
+        nullptr,
+        nullptr);
 
     return result;
 }

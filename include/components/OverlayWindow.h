@@ -10,7 +10,7 @@
 
 #define WM_OVERLAY_WINDOW_DESTROY (WM_USER + 101)
 
-class OverlayWindow : public ui::IComponent {
+class OverlayWindow final : public ui::IComponent {
 public:
     OverlayWindow(HINSTANCE hInstance, std::wstring className);
     ~OverlayWindow() override;

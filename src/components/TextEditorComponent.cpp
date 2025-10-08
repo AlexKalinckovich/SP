@@ -165,6 +165,10 @@ void TextEditorComponent::DestroyEditControl()
         ::DestroyWindow(hEditControl_);
         hEditControl_ = nullptr;
     }
+    if (!currentFontPath_.empty())
+    {
+        ::RemoveFontResourceExW(currentFontPath_.c_str(), FR_PRIVATE, nullptr);
+    }
 }
 
 void TextEditorComponent::ResizeEditControl(const int width, const int height) const
@@ -228,8 +232,22 @@ bool TextEditorComponent::SaveFile() const
     return saveResult.isSuccess;
 }
 
-void TextEditorComponent::SetFont(const std::wstring& fontName, const int fontSize)
+void TextEditorComponent::SetFont(const std::wstring &fontPath, const std::wstring &fontName, const int fontSize)
 {
+    if (!currentFontPath_.empty())
+    {
+        ::RemoveFontResourceExW(currentFontPath_.c_str(), FR_PRIVATE, nullptr);
+        currentFontPath_.clear();
+    }
+
+    if (::AddFontResourceExW(fontPath.c_str(), FR_PRIVATE, nullptr) == 0)
+    {
+        MessageBoxW(hEditControl_, L"Failed to load the specified font file.", L"Font Error", MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    currentFontPath_ = fontPath;
+
     if (hEditFont_)
     {
         ::DeleteObject(hEditFont_);
@@ -237,16 +255,31 @@ void TextEditorComponent::SetFont(const std::wstring& fontName, const int fontSi
     }
 
     hEditFont_ = ::CreateFontW(
-        fontSize, 0, 0, 0, FW_NORMAL,
-        FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+        fontSize,
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_TT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
         fontName.c_str()
     );
 
     if (hEditFont_ && hEditControl_)
     {
-        ::PostMessageW(hEditControl_, WM_SETFONT, reinterpret_cast<WPARAM>(hEditFont_), TRUE);
+        ::SendMessageW(hEditControl_, WM_SETFONT, reinterpret_cast<WPARAM>(hEditFont_), TRUE);
+        ::PostMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0);
+    }
+    else
+    {
+        ::RemoveFontResourceExW(currentFontPath_.c_str(), FR_PRIVATE, 0);
+        currentFontPath_.clear();
     }
 }
 

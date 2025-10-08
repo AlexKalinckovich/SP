@@ -3,6 +3,11 @@
 #include <iostream>
 
 #include "utils/IdleMonitor.h"
+#define MOVE_STEP 10
+#define IDLE_MONITOR_TIMER_IDENTIFIER 2002
+#define IDLE_MONITOR_TIMER_ELAPSE 500
+#define RECTANGLE_WIDTH 48
+#define RECTANGLE_HEIGHT 48
 
 OverlayWindow::OverlayWindow(HINSTANCE hInstance, std::wstring className)
     : hInstance_(hInstance), className_(std::move(className))
@@ -62,7 +67,7 @@ bool OverlayWindow::OnMessage(HWND hwnd, const UINT msg, const WPARAM wParam, co
 
 void OverlayWindow::InitializeMessageHandlers()
 {
-    messageHandler_.RegisterHandler(WM_IDLE_TIMEOUT, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
+    messageHandler_.RegisterHandler(WM_IDLE_TIMEOUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
     {
         if (!isVisible_)
         {
@@ -80,57 +85,80 @@ void OverlayWindow::InitializeMessageHandlers()
         const int width  = clientRect.right  - clientRect.left;
         const int height = clientRect.bottom - clientRect.top;
 
-        spriteState_->w = 48;
-        spriteState_->h = 48;
+        spriteState_->w = RECTANGLE_WIDTH;
+        spriteState_->h = RECTANGLE_HEIGHT;
         spriteState_->x = width / 2 - spriteState_->w / 2;
         spriteState_->y = height / 2 - spriteState_->h / 2;
-        spriteState_->dx = 4;
-        spriteState_->dy = 3;
 
-        ::SetTimer(hwnd, 2002, 500, nullptr);
+        spriteState_->dx = 0;
+        spriteState_->dy = 0;
+
+        ::SetTimer(hwnd, IDLE_MONITOR_TIMER_IDENTIFIER, IDLE_MONITOR_TIMER_ELAPSE, nullptr);
         return 0;
     });
 
-    messageHandler_.RegisterHandler(WM_TIMER, [this](HWND hwnd, WPARAM wParam, LPARAM) -> LRESULT
+    messageHandler_.RegisterHandler(WM_TIMER, [this](HWND hwnd, const WPARAM wParam, LPARAM) -> LRESULT
     {
-        if (wParam == OVERLAY_ANIM_TIMER && spriteState_)
-        {
-            RECT clientRect;
-            ::GetClientRect(hwnd, &clientRect);
-            const int width = clientRect.right - clientRect.left;
-            const int height = clientRect.bottom - clientRect.top;
-
-            spriteState_->x += spriteState_->dx;
-            spriteState_->y += spriteState_->dy;
-
-            if (spriteState_->x < 0)
-            {
-                spriteState_->x = 0;
-                spriteState_->dx = -spriteState_->dx;
-            }
-            else if (spriteState_->x + spriteState_->w > width)
-            {
-                spriteState_->x = width - spriteState_->w;
-                spriteState_->dx = -spriteState_->dx;
-            }
-
-            if (spriteState_->y < 0)
-            {
-                spriteState_->y = 0;
-                spriteState_->dy = -spriteState_->dy;
-            }
-            else if (spriteState_->y + spriteState_->h > height)
-            {
-                spriteState_->y = height - spriteState_->h;
-                spriteState_->dy = -spriteState_->dy;
-            }
-
-            ::InvalidateRect(hwnd, nullptr, TRUE);
-        } else if (wParam == 2002)
+        if (wParam == IDLE_MONITOR_TIMER_IDENTIFIER)
         {
             ignoreFirstInput_ = false;
-            ::KillTimer(hwnd, 2002);
+            ::KillTimer(hwnd, IDLE_MONITOR_TIMER_IDENTIFIER);
         }
+        return 0;
+    });
+
+    messageHandler_.RegisterHandler(WM_KEYDOWN, [this](HWND hwnd, const WPARAM wParam, LPARAM) -> LRESULT
+    {
+        if (!spriteState_ || ignoreFirstInput_)
+            return 0;
+
+        bool moved = false;
+
+        RECT clientRect;
+        ::GetClientRect(hwnd, &clientRect);
+        const int width = clientRect.right - clientRect.left;
+        const int height = clientRect.bottom - clientRect.top;
+
+        switch (wParam)
+        {
+            case 'A':
+            case VK_LEFT:
+                spriteState_->x = std::max(MOVE_STEP, spriteState_->x - MOVE_STEP);
+                moved = true;
+                break;
+
+            case 'D':
+            case VK_RIGHT:
+                spriteState_->x = std::min(width - spriteState_->w - MOVE_STEP, spriteState_->x + MOVE_STEP);
+                moved = true;
+                break;
+
+            case 'W':
+            case VK_UP:
+                spriteState_->y = std::max(MOVE_STEP, spriteState_->y - MOVE_STEP);
+                moved = true;
+                break;
+
+            case 'S':
+            case VK_DOWN:
+                spriteState_->y = std::min(height - spriteState_->h - MOVE_STEP, spriteState_->y + MOVE_STEP);
+                moved = true;
+                break;
+
+            default:
+
+                if (!ignoreFirstInput_)
+                {
+                    Destroy();
+                }
+                break;
+        }
+
+        if (moved)
+        {
+            ::InvalidateRect(hwnd, nullptr, TRUE);
+        }
+
         return 0;
     });
 
@@ -169,7 +197,7 @@ void OverlayWindow::InitializeMessageHandlers()
     messageHandler_.RegisterHandler(WM_DESTROY, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
     {
         ::KillTimer(hwnd, OVERLAY_ANIM_TIMER);
-        ::KillTimer(hwnd, 2002);
+        ::KillTimer(hwnd, IDLE_MONITOR_TIMER_IDENTIFIER);
         delete spriteState_;
         spriteState_ = nullptr;
         hwnd_ = nullptr;
@@ -207,11 +235,9 @@ void OverlayWindow::InitializeMessageHandlers()
         return 0;
     };
 
-    messageHandler_.RegisterHandler(WM_MOUSEMOVE, inputHandler);
     messageHandler_.RegisterHandler(WM_LBUTTONDOWN, inputHandler);
     messageHandler_.RegisterHandler(WM_RBUTTONDOWN, inputHandler);
     messageHandler_.RegisterHandler(WM_MBUTTONDOWN, inputHandler);
-    messageHandler_.RegisterHandler(WM_KEYDOWN, inputHandler);
     messageHandler_.RegisterHandler(WM_SYSKEYDOWN, inputHandler);
 }
 
@@ -296,7 +322,7 @@ void OverlayWindow::Destroy()
     isVisible_ = false;
 }
 
-LRESULT CALLBACK OverlayWindow::StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK OverlayWindow::StaticWndProc(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam)
 {
     OverlayWindow *self = nullptr;
 

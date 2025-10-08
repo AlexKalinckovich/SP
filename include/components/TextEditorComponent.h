@@ -23,7 +23,7 @@ public:
 
     [[nodiscard]] bool LoadFile() const;
     [[nodiscard]] bool SaveFile() const;
-    void SetFont(const std::wstring& fontName, int fontSize);
+    void SetFont(const std::wstring &fontPath, const std::wstring &fontName, int fontSize);
     void Clear() const;
     [[nodiscard]] std::wstring GetText() const;
 
@@ -44,6 +44,7 @@ private:
     HWND hEditControl_ = nullptr;
     HFONT hEditFont_ = nullptr;
 
+    std::wstring currentFontPath_;
     bool hasUnsavedChanges_ = false;
     std::wstring currentFilePath_;
     std::wstring originalContent_;

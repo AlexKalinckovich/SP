@@ -5,6 +5,8 @@
 #ifndef MENUBAR_H
 #define MENUBAR_H
 
+#include <string>
+#include <unordered_map>
 #include <windows.h>
 
 class MenuBar {
@@ -32,7 +34,7 @@ public:
         ID_EDIT_REPLACE,
         ID_FORMAT_FONT,
         ID_VIEW_WORD_WRAP,
-        ID_HELP_ABOUT
+        ID_HELP_ABOUT,
     };
 
 private:

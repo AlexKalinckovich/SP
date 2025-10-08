@@ -29,6 +29,10 @@ add_executable(SP WIN32
         src/utils/FileManager.cpp
         include/utils/ErrorFormater.h
         src/utils/ErrorFormater.cpp
+        include/components/FontSelectorComponent.h
+        src/components/FontSelectorComponent.cpp
+        include/components/ExcelLikeView.h
+        src/components/ExcelLikeView.cpp
 )
 
 # Подключаем include/ директорию (заголовки — там).

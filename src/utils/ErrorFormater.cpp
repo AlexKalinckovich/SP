@@ -8,7 +8,7 @@ std::string ErrorFormater::GetLastErrorString()
         return "Unknown error";
     }
 
-    return ErrorFormater::GetErrorString(errorCode);
+    return GetErrorString(errorCode);
 }
 std::string ErrorFormater::GetErrorString(const DWORD err)
 {

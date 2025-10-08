@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "HashMapMessageHandler.h"
+#include "components/ExcelLikeView.h"
 #include "components/MenuBar.h"
 #include "components/OverlayWindow.h"
 #include "components/TextEditorComponent.h"
@@ -40,13 +41,16 @@ namespace win32 {
             MenuBar menuBar_;
             std::shared_ptr<OverlayWindow> overlayWindow_;
             std::shared_ptr<TextEditorComponent> textEditor_;
+            std::shared_ptr<ExcelLikeView> excelLikeView_;
             HashMapMessageHandler messageHandler_;
             ComponentManager componentManager_;
             std::shared_ptr<IdleMonitor> idleMonitor_;
 
+
             static LRESULT CALLBACK StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
             LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
 
+            void ShowFontDialog() const;
             void InitializeMessageHandlers();
 
             void CreateTextEditControl();

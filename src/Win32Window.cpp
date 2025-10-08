@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include "components/AboutDialog.h"
+#include "components/FontSelectorComponent.h"
 
 namespace win32
 {
@@ -17,12 +18,14 @@ namespace win32
     , windowTitle_(std::move(windowTitle))
     , overlayWindow_(std::make_shared<OverlayWindow>(hInstance, className_ + L"_Overlay"))
     , textEditor_(std::make_shared<TextEditorComponent>(hInstance))
+    , excelLikeView_(std::make_shared<ExcelLikeView>(3,3))
     , idleMonitor_(std::make_shared<IdleMonitor>())
     {
         InitializeMessageHandlers();
         AddComponent(idleMonitor_);
         AddComponent(overlayWindow_);
-        AddComponent(textEditor_);
+        excelLikeView_->OnCreate(hwnd_);
+        AddComponent(excelLikeView_);
     }
 
 
@@ -143,6 +146,11 @@ namespace win32
             return 0;
         });
 
+        messageHandler_.RegisterCommandHandler(MenuBar::ID_FORMAT_FONT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        {
+            ShowFontDialog();
+            return 0;
+        });
 
     }
 
@@ -249,7 +257,10 @@ namespace win32
     }
 
 
-    LRESULT CALLBACK Win32Window::StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
+    LRESULT CALLBACK Win32Window::StaticWndProc(HWND hwnd,
+                                                const UINT msg,
+                                                const WPARAM wParam,
+                                                const LPARAM lParam) noexcept
     {
         Win32Window* self = nullptr;
 
@@ -265,12 +276,38 @@ namespace win32
             self = reinterpret_cast<Win32Window*>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
         }
 
-        return self ? self->HandleMessage(msg, wParam, lParam) : ::DefWindowProcW(hwnd, msg, wParam, lParam);
+        LRESULT result;
+        if (self)
+        {
+            result = self->HandleMessage(msg, wParam, lParam);
+        }
+        else
+        {
+            result = ::DefWindowProcW(hwnd, msg, wParam, lParam);
+        }
+        return result;
     }
     void Win32Window::ShowAboutDialog() const
     {
         AboutDialog about(hInstance_, hwnd_);
         about.Show();
     }
+
+    void Win32Window::ShowFontDialog() const
+    {
+        const std::filesystem::path fontDirectory = LR"(C:\Users\brota\CLionProjects\SP\meta-info)";
+
+        FontSelectorDialog dialog(hInstance_, hwnd_, fontDirectory);
+        const std::optional<std::wstring> selectedFontName = dialog.ShowModal();
+
+        if (selectedFontName.has_value())
+        {
+            const std::wstring fontPath = fontDirectory / (selectedFontName.value() + L".ttf");
+            const std::wstring fontName = selectedFontName.value();
+
+            this->excelLikeView_->SetFont(fontPath, fontName, 18);
+        }
+    }
+
 
 } // namespace win32
