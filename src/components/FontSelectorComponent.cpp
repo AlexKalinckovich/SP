@@ -1,6 +1,8 @@
 // FontSelectorDialog.cpp
 #include "components/FontSelectorComponent.h"
 
+#include <algorithm>
+
 
 // Control IDs
 #define IDC_FONT_LISTBOX_MODAL 2001
@@ -45,7 +47,6 @@ std::optional<std::wstring> FontSelectorDialog::ShowModal()
 {
     RegisterDialogClass(m_hInstance);
 
-    // Create the dialog window. Note the WS_POPUPWINDOW style.
     m_hDialog = CreateWindowExW(
         WS_EX_DLGMODALFRAME,
         s_wndClassName,
@@ -55,7 +56,7 @@ std::optional<std::wstring> FontSelectorDialog::ShowModal()
         m_hParent,
         nullptr,
         m_hInstance,
-        this // Pass 'this' pointer to be retrieved in WM_CREATE
+        this
     );
 
     if (!m_hDialog) return std::nullopt;
@@ -63,10 +64,6 @@ std::optional<std::wstring> FontSelectorDialog::ShowModal()
     CenterWindow();
     ShowWindow(m_hDialog, SW_SHOW);
     UpdateWindow(m_hDialog);
-
-    // 1. Disable the parent window.
-    // 2. Run a message loop until our dialog is closed.
-    // 3. Re-enable the parent window.
     EnableWindow(m_hParent, FALSE);
 
     MSG msg = {};
@@ -176,24 +173,27 @@ LRESULT FontSelectorDialog::HandleMessage(HWND hwnd, const UINT msg, const WPARA
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-// --- Helper implementations ---
-
 void FontSelectorDialog::ScanFontDirectory()
 {
     m_fontNames.clear();
-    try
-    {
-        if (!std::filesystem::exists(m_fontDirectory) || !std::filesystem::is_directory(m_fontDirectory)) return;
 
-        for (const auto& entry : std::filesystem::directory_iterator(m_fontDirectory))
+    HDC hdc = GetDC(nullptr);
+    LOGFONTW lf = {0};
+    lf.lfCharSet = DEFAULT_CHARSET;
+
+    EnumFontFamiliesExW(hdc, &lf, [](const LOGFONT* lf, const TEXTMETRIC*, DWORD, const LPARAM lParam) -> int
+    {
+        FontSelectorDialog* dialog = reinterpret_cast<FontSelectorDialog*>(lParam);
+        if (lf->lfFaceName[0] != '@')
         {
-            if (entry.is_regular_file() && entry.path().extension() == L".ttf")
-            {
-                m_fontNames.push_back(entry.path().stem().wstring());
-            }
+            dialog->m_fontNames.emplace_back(lf->lfFaceName);
         }
-    }
-    catch (const std::filesystem::filesystem_error&) {}
+        return 1;
+    }, (LPARAM)this, 0);
+
+    ReleaseDC(nullptr, hdc);
+
+    std::ranges::sort(m_fontNames);
 }
 
 void FontSelectorDialog::PopulateListBox() const

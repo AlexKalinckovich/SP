@@ -40,7 +40,6 @@ namespace win32 {
             HWND hwnd_ = nullptr;
             MenuBar menuBar_;
             std::shared_ptr<OverlayWindow> overlayWindow_;
-            std::shared_ptr<TextEditorComponent> textEditor_;
             std::shared_ptr<ExcelLikeView> excelLikeView_;
             HashMapMessageHandler messageHandler_;
             ComponentManager componentManager_;

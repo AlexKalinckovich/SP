@@ -17,8 +17,7 @@ namespace win32
     , className_(std::move(className))
     , windowTitle_(std::move(windowTitle))
     , overlayWindow_(std::make_shared<OverlayWindow>(hInstance, className_ + L"_Overlay"))
-    , textEditor_(std::make_shared<TextEditorComponent>(hInstance))
-    , excelLikeView_(std::make_shared<ExcelLikeView>(3,3))
+    , excelLikeView_(std::make_shared<ExcelLikeView>(10,10))
     , idleMonitor_(std::make_shared<IdleMonitor>())
     {
         InitializeMessageHandlers();
@@ -70,13 +69,13 @@ namespace win32
 
         messageHandler_.RegisterHandler(WM_CLOSE, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
         {
-            if (textEditor_->HasUnsavedChanges())
-            {
-                if (!textEditor_->PromptSaveIfNeeded(hwnd))
-                {
-                    return 0;
-                }
-            }
+            // if (textEditor_->HasUnsavedChanges())
+            // {
+            //     if (!textEditor_->PromptSaveIfNeeded(hwnd))
+            //     {
+            //         return 0;
+            //     }
+            // }
             ::DestroyWindow(hwnd);
             return 0;
         });
@@ -90,12 +89,12 @@ namespace win32
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_OPEN, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            return textEditor_->LoadFile();
+            return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_SAVE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            return textEditor_->SaveFile();
+            return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_EXIT, [this](HWND, WPARAM, LPARAM) -> LRESULT
@@ -106,37 +105,31 @@ namespace win32
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_CUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnCut();
             return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_COPY, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnCopy();
             return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_PASTE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnPaste();
             return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_UNDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnUndo();
             return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_REDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnRedo();
             return 0;
         });
 
         messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_SELECT_ALL, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnSelectAll();
             return 0;
         });
 
@@ -305,7 +298,7 @@ namespace win32
             const std::wstring fontPath = fontDirectory / (selectedFontName.value() + L".ttf");
             const std::wstring fontName = selectedFontName.value();
 
-            this->excelLikeView_->SetFont(fontPath, fontName, 18);
+            this->excelLikeView_->SetFont(fontName, 18);
         }
     }
 
