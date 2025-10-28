@@ -4,8 +4,27 @@
 
 #include "win32/Win32Window.h"
 
+typedef bool (*ReplaceStringInMemoryFunc)(LPVOID, SIZE_T, LPCWSTR, LPCWSTR);
+typedef bool (*ReadMemoryBytesFunc)(LPCVOID, SIZE_T, std::vector<BYTE>&);
+typedef SIZE_T (*FindPatternInMemoryFunc)(LPCVOID, SIZE_T, const BYTE*, SIZE_T, std::vector<LPCVOID>&);
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, const int nShowCmd)
 {
+
+    HMODULE hDll = LoadLibrary(TEXT("C:\\Users\\brota\\CLionProjects\\MemPatch\\cmake-build-debug\\libMemPatch.dll"));
+    if (!hDll)
+    {
+        std::cout << "Failed to load DLL! Error: " << GetLastError() << std::endl;
+    }
+    ReplaceStringInMemoryFunc ReplaceStringInMemory =
+        (ReplaceStringInMemoryFunc)GetProcAddress(hDll, "ReplaceStringInMemory");
+
+    ReadMemoryBytesFunc ReadMemoryBytes =
+        (ReadMemoryBytesFunc)GetProcAddress(hDll, "ReadMemoryBytes");
+
+    FindPatternInMemoryFunc FindPatternInMemory =
+            (FindPatternInMemoryFunc)GetProcAddress(hDll, "FindPatternInMemory");
+
     const std::wstring className = L"MySampleClass";
     const std::wstring windowTitle = L"Text redactor";
 

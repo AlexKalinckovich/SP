@@ -1,18 +1,28 @@
-//
-// Created by brota on 15.09.2025.
-//
+// ErrorFormatter.h
+#pragma once
 
-#ifndef ERRORFORMATER_H
-#define ERRORFORMATER_H
+#include <windows.h>
 #include <string>
 
-#include "components/AboutDialog.h"
-
-class ErrorFormater
+class ErrorFormatter
 {
 public:
     static std::string GetLastErrorString();
-    static std::string GetErrorString(DWORD err);
-};
+    static std::string GetErrorString(DWORD errorCode);
+    static std::wstring GetLastErrorStringW();
+    static std::wstring GetErrorStringW(DWORD errorCode);
 
-#endif //ERRORFORMATER_H
+    static bool SetLastApplicationError(DWORD appErrorCode);
+    static bool IsApplicationError(DWORD errorCode);
+    static bool IsSystemError(DWORD errorCode);
+    static void ClearError();
+
+private:
+    static std::string FormatSystemError(DWORD errorCode);
+    static std::string FormatApplicationError(DWORD errorCode);
+    static std::wstring FormatSystemErrorW(DWORD errorCode);
+    static std::wstring FormatApplicationErrorW(DWORD errorCode);
+
+    static std::string GetApplicationErrorDescription(DWORD appErrorCode);
+    static std::wstring GetApplicationErrorDescriptionW(DWORD appErrorCode);
+};

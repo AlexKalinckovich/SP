@@ -6,14 +6,14 @@
 #include <memory>
 
 #include "HashMapMessageHandler.h"
-#include "components/ExcelLikeView.h"
+#include "components/excelView/ExcelLikeView.h"
 #include "components/MenuBar.h"
 #include "components/OverlayWindow.h"
-#include "components/TextEditorComponent.h"
 #include "utils/ComponentManager.h"
 #include "utils/IdleMonitor.h"
 
-namespace win32 {
+namespace win32
+{
 
     class Win32Window
     {
@@ -42,7 +42,7 @@ namespace win32 {
             std::shared_ptr<OverlayWindow> overlayWindow_;
             std::shared_ptr<ExcelLikeView> excelLikeView_;
             HashMapMessageHandler messageHandler_;
-            ComponentManager componentManager_;
+            ui::ComponentManager componentManager_;
             std::shared_ptr<IdleMonitor> idleMonitor_;
 
 

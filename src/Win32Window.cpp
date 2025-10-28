@@ -9,6 +9,8 @@
 
 #include "components/AboutDialog.h"
 #include "components/FontSelectorComponent.h"
+#include "meta_info/message_codes.h"
+#include "utils/FileManager.h"
 
 namespace win32
 {
@@ -87,59 +89,60 @@ namespace win32
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_OPEN, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FILE_OPEN, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        {
+            excelLikeView_->HandleFileOpen();
+            return 0;
+        });
+
+        messageHandler_.RegisterCommandHandler(ID_FILE_SAVE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_SAVE, [this](HWND, WPARAM, LPARAM) -> LRESULT
-        {
-            return 0;
-        });
-
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_EXIT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FILE_EXIT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ::DestroyWindow(hwnd_);
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_CUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_CUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_COPY, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_COPY, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_PASTE, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_PASTE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_UNDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_UNDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_REDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_REDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_SELECT_ALL, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_SELECT_ALL, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_HELP_ABOUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_HELP_ABOUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ShowAboutDialog();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FORMAT_FONT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FORMAT_FONT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ShowFontDialog();
             return 0;
@@ -259,7 +262,7 @@ namespace win32
 
         if (msg == WM_NCCREATE)
         {
-            const auto* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
+            const CREATESTRUCTW *cs = reinterpret_cast<CREATESTRUCTW *>(lParam);
             self = static_cast<Win32Window*>(cs->lpCreateParams);
             ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
             self->hwnd_ = hwnd;
@@ -296,9 +299,9 @@ namespace win32
         if (selectedFontName.has_value())
         {
             const std::wstring fontPath = fontDirectory / (selectedFontName.value() + L".ttf");
-            const std::wstring fontName = selectedFontName.value();
+            const std::wstring& fontName = selectedFontName.value();
 
-            this->excelLikeView_->SetFont(fontName, 18);
+            this->excelLikeView_->SetFont(fontName, 36);
         }
     }
 

@@ -3,11 +3,11 @@
 
 #include <algorithm>
 
-
-// Control IDs
 #define IDC_FONT_LISTBOX_MODAL 2001
 #define IDC_OK_BUTTON          2002
 #define IDC_CANCEL_BUTTON      2003
+
+#define FONT_VERTICAL_MARK_SYMBOL '@'
 
 FontSelectorDialog::FontSelectorDialog(HINSTANCE hInstance, HWND hwndParent, std::filesystem::path fontDirectory)
     : m_hInstance(hInstance),
@@ -59,27 +59,30 @@ std::optional<std::wstring> FontSelectorDialog::ShowModal()
         this
     );
 
-    if (!m_hDialog) return std::nullopt;
-
-    CenterWindow();
-    ShowWindow(m_hDialog, SW_SHOW);
-    UpdateWindow(m_hDialog);
-    EnableWindow(m_hParent, FALSE);
-
-    MSG msg = {};
-    while (GetMessage(&msg, nullptr, 0, 0))
+    std::optional<std::wstring> result = std::nullopt;
+    if (m_hDialog)
     {
-        if (!IsDialogMessage(m_hDialog, &msg))
+        CenterWindow();
+        ShowWindow(m_hDialog, SW_SHOW);
+        UpdateWindow(m_hDialog);
+        EnableWindow(m_hParent, FALSE);
+
+        MSG msg = {};
+        while (GetMessage(&msg, nullptr, 0, 0))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            if (!IsDialogMessage(m_hDialog, &msg))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
+
+        EnableWindow(m_hParent, TRUE);
+        SetForegroundWindow(m_hParent);
+
+        result = m_selectedFont;
     }
-
-    EnableWindow(m_hParent, TRUE);
-    SetForegroundWindow(m_hParent);
-
-    return m_selectedFont;
+    return result;
 }
 
 
@@ -89,7 +92,7 @@ LRESULT CALLBACK FontSelectorDialog::DialogWndProc(HWND hwnd, const UINT msg, co
 
     if (msg == WM_NCCREATE)
     {
-        auto pCreate = (CREATESTRUCT*)lParam;
+        CREATESTRUCT *pCreate = (CREATESTRUCT *) lParam;
         pThis = (FontSelectorDialog*)pCreate->lpCreateParams;
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pThis);
     }
@@ -181,12 +184,12 @@ void FontSelectorDialog::ScanFontDirectory()
     LOGFONTW lf = {0};
     lf.lfCharSet = DEFAULT_CHARSET;
 
-    EnumFontFamiliesExW(hdc, &lf, [](const LOGFONT* lf, const TEXTMETRIC*, DWORD, const LPARAM lParam) -> int
+    EnumFontFamiliesExW(hdc, &lf, [](const LOGFONT* logFont, const TEXTMETRIC*, DWORD, const LPARAM lParam) -> int
     {
         FontSelectorDialog* dialog = reinterpret_cast<FontSelectorDialog*>(lParam);
-        if (lf->lfFaceName[0] != '@')
+        if (logFont->lfFaceName[0] != FONT_VERTICAL_MARK_SYMBOL)
         {
-            dialog->m_fontNames.emplace_back(lf->lfFaceName);
+            dialog->m_fontNames.emplace_back(logFont->lfFaceName);
         }
         return 1;
     }, (LPARAM)this, 0);

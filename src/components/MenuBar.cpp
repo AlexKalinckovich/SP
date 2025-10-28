@@ -3,6 +3,8 @@
 
 #include <windows.h>
 
+#include "meta_info/message_codes.h"
+
 MenuBar::MenuBar() = default;
 
 MenuBar::~MenuBar()
