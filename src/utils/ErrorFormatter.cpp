@@ -1,4 +1,4 @@
-#include "utils/ErrorFormater.h"
+#include "utils/ErrorFormatter.h"
 #include "meta_info/error_codes.h"
 #include <string>
 #include <sstream>

@@ -53,14 +53,17 @@ void IdleMonitor::InitializeMessageHandlers()
             const WORD activationType = LOWORD(wParam);
             const BOOL minimized = HIWORD(wParam);
 
+#ifdef  DEBUG_INFO
             std::cout << "WM_ACTIVATE - activationType: " << activationType
                       << ", minimized: " << minimized << std::endl;
-
+#endif
             if (activationType == WA_INACTIVE)
             {
                 if (!isPaused_)
                 {
+#ifdef  DEBUG_INFO
                     std::cout << "Window deactivated - pausing idle monitor" << std::endl;
+#endif
                     this->Pause();
                 }
             }
@@ -80,16 +83,21 @@ void IdleMonitor::InitializeMessageHandlers()
         if(wParam == IDLE_TIMER_ID)
         {
             const ULONGLONG idle = GetIdleTimeMs();
+#ifdef  DEBUG_INFO
             std::cout << "Idle time: " << idle << " ms, Threshold: " << IDLE_THRESHOLD_MS << " ms" << std::endl;
-
+#endif
             if (idle >= IDLE_THRESHOLD_MS)
             {
+#ifdef  DEBUG_INFO
                 std::cout << "Idle threshold reached, sending WM_IDLE_TIMEOUT" << std::endl;
+#endif
                 ::PostMessageW(hwndParent_, WM_IDLE_TIMEOUT, 0, 0);
             }
             else
             {
+#ifdef DEBUG_INFO
                 std::cout << "Idle threshold NOT reached yet" << std::endl;
+#endif
             }
         }
         return 0;

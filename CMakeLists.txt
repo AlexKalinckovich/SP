@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(SP WIN32
         C:/Users/brota/CLionProjects/ProcessLib/processInfo.h
+        C:/Users/brota/CLionProjects/ProcessLib/processInfo.cpp
         src/main.cpp
         src/Win32Window.cpp
         include/components/MenuBar.h
@@ -25,8 +26,8 @@ add_executable(SP WIN32
         include/utils/EncodingDetector.h
         src/utils/EncodingDetector.cpp
         src/utils/FileManager.cpp
-        include/utils/ErrorFormater.h
-        src/utils/ErrorFormater.cpp
+        include/utils/ErrorFormatter.h
+        src/utils/ErrorFormatter.cpp
         include/components/FontSelectorComponent.h
         src/components/FontSelectorComponent.cpp
         include/components/excelView/ExcelLikeView.h
@@ -34,6 +35,9 @@ add_executable(SP WIN32
         src/components/excelView/ExcelLikeView_MessageHandlers.cpp
         src/components/excelView/ExcelLikeView_CellOperations.cpp
         include/meta_info/message_codes.h
+        ../ProcessLib/processInfo.h
+        include/components/ProcessInfoViewer.h
+        src/components/ProcessInfoViewer.cpp
 )
 
 target_include_directories(SP PRIVATE

@@ -9,7 +9,9 @@
 
 #include "components/AboutDialog.h"
 #include "components/FontSelectorComponent.h"
+#include "components/ProcessInfoViewer.h"
 #include "meta_info/message_codes.h"
+#include "utils/ErrorFormatter.h"
 #include "utils/FileManager.h"
 
 namespace win32
@@ -22,6 +24,7 @@ namespace win32
     , excelLikeView_(std::make_shared<ExcelLikeView>(10,10))
     , idleMonitor_(std::make_shared<IdleMonitor>())
     {
+        ProcessInfoViewer::Register(hInstance_);
         InitializeMessageHandlers();
         AddComponent(idleMonitor_);
         AddComponent(overlayWindow_);
@@ -145,6 +148,22 @@ namespace win32
         messageHandler_.RegisterCommandHandler(ID_FORMAT_FONT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ShowFontDialog();
+            return 0;
+        });
+
+        messageHandler_.RegisterCommandHandler(ID_PROCESS_INFO, [this](HWND hWnd, WPARAM, LPARAM) -> LRESULT
+        {
+            HINSTANCE hInstance = (HINSTANCE) GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+
+            RECT rcParent;
+            GetWindowRect(hWnd, &rcParent);
+            constexpr int childWidth = 350;
+            constexpr int childHeight = 400;
+            const int x = rcParent.left + (rcParent.right - rcParent.left - childWidth) / 2;
+            const int y = rcParent.top + (rcParent.bottom - rcParent.top - childHeight) / 2;
+            ProcessInfoViewer dialog(hInstance, hWnd);
+            dialog.ShowModal(x, y, childWidth, childHeight);
+
             return 0;
         });
 

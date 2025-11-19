@@ -11,9 +11,6 @@ MenuBar::~MenuBar()
 {
     Destroy();
 }
-
-
-
 bool MenuBar::CreateEditMenu(HMENU hMenu) {
     HMENU hEdit = ::CreatePopupMenu();
     if (hEdit == nullptr)
@@ -64,6 +61,7 @@ bool MenuBar::Create()
     if (!CreateEditMenu(hMenuBar_)) return false;
     if (!CreateHelpMenu(hMenuBar_)) return false;
     if (!CreateFormatMenu(hMenuBar_)) return false;
+    if (!CreateProcessInfoMenu(hMenuBar_)) return false;
 
     return true;
 }
@@ -101,6 +99,18 @@ bool MenuBar::CreateHelpMenu(HMENU hMenu)
 
     ::AppendMenuW(hHelp, MF_STRING, ID_HELP_ABOUT, L"About");
     ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hHelp), L"Help");
+    return true;
+}
+
+bool MenuBar::CreateProcessInfoMenu(HMENU hMenu)
+{
+    HMENU hFormat = ::CreatePopupMenu();
+    if (hFormat == nullptr)
+    {
+        return false;
+    }
+
+    ::AppendMenuW(hMenu, MF_POPUP, ID_PROCESS_INFO, L"ProcessInfo");
     return true;
 }
 

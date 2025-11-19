@@ -118,7 +118,6 @@ RECT ExcelLikeView::GetCellRect(const int row, const int col) const
         top += m_rowHeights[i];
     }
 
-    // Bounds check
     if(row < 0 || row >= m_rowCount || col < 0 || col >= m_colCount)
     {
         return {left, top, left + m_defaultColumnWidth, top + m_defaultRowHeight};

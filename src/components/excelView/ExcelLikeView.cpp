@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
-#include "utils/ErrorFormater.h" 
+#include "utils/ErrorFormatter.h"
 
 
 ExcelLikeView::ExcelLikeView(const int initialRows, const int initialCols)
@@ -188,7 +188,7 @@ void ExcelLikeView::SpreadTextToCells(const std::string& text)
 
     if (!text.empty())
     {
-        // Convert UTF-8 chunk to wstring
+
         const int wideLength = MultiByteToWideChar(CP_UTF8, 0, text.c_str(),
             static_cast<int>(text.length()), nullptr,0);
         if (wideLength > 0)
@@ -201,7 +201,7 @@ void ExcelLikeView::SpreadTextToCells(const std::string& text)
             size_t textIndex = 0;
             const size_t totalTextLength = wideText.length();
 
-            // Populate cells based on their capacity
+
             for (int row = 0; row < m_rowCount && textIndex < totalTextLength; ++row)
             {
                 for (int col = 0; col < m_colCount && textIndex < totalTextLength; ++col)
@@ -227,7 +227,6 @@ size_t ExcelLikeView::CalculateVisibleCapacity() const
     for (int col = 0; col < m_colCount; ++col)
     {
         const int cellCapacity = CalculateCellCapacity(col);
-        // Ensure capacity is non-negative
         totalCapacity += static_cast<size_t>(std::max(0, cellCapacity)) * m_rowCount;
     }
 
@@ -329,9 +328,8 @@ void ExcelLikeView::DrawCells(HDC hdc) const
             if (!m_cells[r][c].text.empty())
             {
                 RECT cellRect = GetCellRect(static_cast<int>(r), static_cast<int>(c));
-                // Clipping
-                if (cellRect.bottom < 0 || cellRect.top > clientRect.bottom ||
-                    cellRect.right < 0 || cellRect.left > clientRect.right)
+                if (cellRect.bottom < 0 || cellRect.top  > clientRect.bottom ||
+                    cellRect.right  < 0 || cellRect.left > clientRect.right)
                 {
                     continue;
                 }
@@ -361,7 +359,7 @@ void ExcelLikeView::DrawFocusRect(HDC hdc) const
         HPEN oldPen = (HPEN) SelectObject(hdc, hPen);
         HBRUSH oldBrush = (HBRUSH) SelectObject(hdc, hBrush);
 
-        Rectangle(hdc, focusRect.left, focusRect.top, focusRect.right, focusRect.bottom);
+        Rectangle(hdc, focusRect.left,focusRect.top, focusRect.right,focusRect.bottom);
 
         SelectObject(hdc, oldPen);
         SelectObject(hdc, oldBrush);

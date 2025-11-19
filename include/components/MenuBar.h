@@ -27,6 +27,8 @@ private:
     static bool CreateFormatMenu(HMENU hMenu);
 
     static bool CreateHelpMenu(HMENU hMenu);
+
+    static bool CreateProcessInfoMenu(HMENU hMenu);
 };
 
 #endif //MENUBAR_H

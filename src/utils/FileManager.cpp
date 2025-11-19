@@ -6,7 +6,7 @@
 #include <memory>
 #include <algorithm>
 
-#include "utils/ErrorFormater.h" // Assumed to exist
+#include "utils/ErrorFormatter.h" // Assumed to exist
 
 #define NO_CHILD_DESCRIPTOR_INHERITANCE nullptr
 #define MAX_FILE_PATH 32767
@@ -15,7 +15,6 @@
 #define NO_OUTPUT_BUFFER nullptr
 #define ZERO_MULTI_BYTE 0
 
-// --- MemoryMappedReader Implementation ---
 
 FileManager::MemoryMappedReader::MemoryMappedReader()
     : m_fileHandle(INVALID_FILE_HANDLE)
@@ -39,13 +38,13 @@ bool FileManager::MemoryMappedReader::OpenFile(const std::wstring& filePath)
         filePath.c_str(),
         GENERIC_READ,
         FILE_SHARE_READ,
-        NO_CHILD_DESCRIPTOR_INHERITANCE,
+        nullptr,  // Fixed: replaced NO_CHILD_DESCRIPTOR_INHERITANCE
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
-        NO_TEMPORARY_FILE
+        nullptr   // Fixed: replaced NO_TEMPORARY_FILE
     );
 
-    if (m_fileHandle == INVALID_FILE_HANDLE)
+    if (m_fileHandle == INVALID_HANDLE_VALUE)  // Fixed: should be INVALID_HANDLE_VALUE
     {
         return false;
     }
@@ -75,17 +74,27 @@ bool FileManager::MemoryMappedReader::OpenFile(const std::wstring& filePath)
         NO_TEMPORARY_FILE
     );
 
-    if (m_fileMapping == INVALID_FILE_HANDLE)
+    if (m_fileMapping == nullptr)
     {
         CloseFile();
         return false;
     }
 
+    SYSTEM_INFO systemInfo;
+    GetSystemInfo(&systemInfo);
+    const DWORD allocationGranularity = systemInfo.dwAllocationGranularity;
+
+
+    ULARGE_INTEGER offset;
+    offset.QuadPart = 0;
+
+    offset.QuadPart = (offset.QuadPart / allocationGranularity) * allocationGranularity;
+
     m_mappedData = static_cast<const char*>(MapViewOfFile(
         m_fileMapping,
-        FILE_MAPPING_VIEW_READ_ACCESS,
-        HIGH_DWORD_OF_OFFSET_VIEW,
-        LOW_DWORD_OF_OFFSET_VIEW,
+        FILE_MAP_READ,
+        offset.HighPart,
+        offset.LowPart,
         TO_THE_END_OF_FILE
     ));
 
@@ -141,7 +150,6 @@ std::string FileManager::MemoryMappedReader::GetTextChunk(const size_t offset, c
 }
 
 
-// --- FileManager Static Methods ---
 
 bool FileManager::LoadFileForMapping(HWND hwnd, FileLoadResult& result)
 {
@@ -152,7 +160,7 @@ bool FileManager::LoadFileForMapping(HWND hwnd, FileLoadResult& result)
     {
         result.isSuccess = false;
         SetEmptyFileLoadResult(result);
-        return false; // Error set by OpenFileDialog
+        return false;
     }
 
     return LoadFileForMapping(filepath.value(), result);
@@ -193,13 +201,12 @@ bool FileManager::LoadFileForMapping(const std::wstring& filePath, FileLoadResul
     if (result.fileSize == 0)
     {
         ErrorFormatter::SetLastApplicationError(U_ERROR_FILE_EMPTY);
-        result.isSuccess = true; // Empty file is a "successful" load
+        result.isSuccess = true;
         result.encoding = Encoding::UNKNOWN;
         result.buffer.clear();
         return true;
     }
 
-    // Read a sample for encoding detection
     std::vector<UCHAR> sampleBuffer(std::min(static_cast<size_t>(READ_CHUNK_SIZE), result.fileSize));
     DWORD bytesRead = 0;
 
@@ -207,7 +214,6 @@ bool FileManager::LoadFileForMapping(const std::wstring& filePath, FileLoadResul
     {
         result.encoding = EncodingDetector::Detect(sampleBuffer.data(), bytesRead);
         result.isSuccess = true;
-        // We don't store the buffer, LoadFileForMapping is just for metadata
         sampleBuffer.clear();
     }
     else
@@ -242,8 +248,7 @@ bool FileManager::LoadFile(const std::wstring& filePath, FileLoadResult& result)
     const std::vector<UCHAR> buffer = ReadFileContent(filePath);
 
     bool success = false;
-    // Check GetLastError because ReadFileContent sets it on failure
-    if (buffer.empty() && GetLastError() != 0)
+    if (buffer.empty() && GetLastError() != ERROR_SUCCESS)
     {
         result.filePath = filePath;
         SetErrorFileLoadResult(result);

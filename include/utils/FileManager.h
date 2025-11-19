@@ -24,6 +24,7 @@ enum class SaveEncoding; // Assumed to exist
 #define HIGH_DWORD_OF_OFFSET_VIEW 0
 #define LOW_DWORD_OF_OFFSET_VIEW 0
 #define TO_THE_END_OF_FILE 0
+#define FULL_SIZE_OF_FILE 0
 
 class FileManager
 {

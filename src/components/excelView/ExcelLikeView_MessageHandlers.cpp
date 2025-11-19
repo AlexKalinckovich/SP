@@ -1,11 +1,9 @@
-
-
-
-
 #include "components/excelView/ExcelLikeView.h"
 #include <numeric>
 #include <cmath>
 #include <windowsx.h>
+
+#include "meta_info/message_codes.h"
 
 void ExcelLikeView::InitializeMessageHandlers()
 {
@@ -50,6 +48,23 @@ void ExcelLikeView::InitializeMessageHandlers()
     m_messageHandler.RegisterHandler(WM_MOUSEWHEEL, [this](HWND, const WPARAM wParam, LPARAM) -> LRESULT
     {
         HandleMouseWheel(wParam);
+        return 0;
+    });
+
+    m_messageHandler.RegisterHandler(WM_READABLE_MEMORY_DATA, [this](HWND, const WPARAM, LPARAM lParam) -> LRESULT
+    {
+        const std::vector<BYTE> *bytes = reinterpret_cast<const std::vector<BYTE> *>(lParam);
+
+        const Encoding detectedEncoding = EncodingDetector::Detect(bytes->data(), bytes->size());
+        const std::string text = EncodingDetector::ConvertToUTF8(*bytes, detectedEncoding);
+        const size_t textSize = text.size();
+        delete bytes;
+
+        this->SpreadTextToCells(text);
+
+        InvalidateRect(m_hwndParent, nullptr, TRUE);
+        UpdateWindow(m_hwndParent);
+
         return 0;
     });
 }
@@ -152,7 +167,6 @@ void ExcelLikeView::HandleLButtonDown(const LPARAM lParam)
         if (oldActiveCell.x >= 0 && oldActiveCell.y >= 0)
         {
             RECT oldRect = GetCellRect(oldActiveCell.y, oldActiveCell.x);
-            // Inflate rect to cover the focus border
             InflateRect(&oldRect, SELECTED_CELL_WIDTH, SELECTED_CELL_WIDTH);
             InvalidateRect(m_hwndParent, &oldRect, FALSE);
         }
@@ -212,7 +226,7 @@ void ExcelLikeView::HandleChar(const WPARAM symbolCodeWParam)
             if (movedToNextCell)
             {
                 UpdateGridSizeForCell(m_activeCell.y, m_activeCell.x);
-                RECT prevCellRect = GetCellRect(m_activeCell.y - changeY,m_activeCell.x - changeX);
+                const RECT prevCellRect = GetCellRect(m_activeCell.y - changeY,m_activeCell.x - changeX);
                 InvalidateRect(m_hwndParent, &prevCellRect, FALSE);
 
                 const RECT newCellRect = GetCellRect(m_activeCell.y, m_activeCell.x);
@@ -250,7 +264,10 @@ void ExcelLikeView::HandleKeyDown(const WPARAM wParam)
         const bool isNewCellActive = m_activeCell.x != oldActiveCell.x || m_activeCell.y != oldActiveCell.y;
         if (isNewCellActive)
         {
-            const RECT oldRect = GetCellRect(oldActiveCell.y, oldActiveCell.x);
+            RECT oldRect = GetCellRect(oldActiveCell.y, oldActiveCell.x);
+            oldRect.left -= TEXT_PADDING;
+            oldRect.top  -= TEXT_PADDING;
+
             InvalidateRect(m_hwndParent, &oldRect, FALSE);
 
             const RECT newRect = GetCellRect(m_activeCell.y, m_activeCell.x);
@@ -359,7 +376,7 @@ void ExcelLikeView::HandleVScroll(const WPARAM wParam)
         GetScrollInfo(m_hwndParent, SB_VERT, &si);
         const int oldPos = m_verticalScrollPos;
 
-        const int currentScrollPos = HIWORD(wParam);
+        const int currentScrollPos  = HIWORD(wParam);
         const int scrollRequestType = LOWORD(wParam);
         switch (scrollRequestType)
         {
@@ -390,8 +407,7 @@ void ExcelLikeView::HandleMouseWheel(const WPARAM wParam)
         SCROLLINFO si = {sizeof(si), SIF_ALL};
         GetScrollInfo(m_hwndParent, SB_VERT, &si);
 
-        const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-        // Scroll by a "page" (visible capacity)
+        const int delta        = GET_WHEEL_DELTA_WPARAM(wParam);
         const int scrollAmount = -delta / WHEEL_DELTA * static_cast<int>(si.nPage);
 
         const size_t oldOffset = m_currentFileOffset;
@@ -419,7 +435,7 @@ void ExcelLikeView::HandleMouseWheel(const WPARAM wParam)
     else
     {
         const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-        const int scrollAmount = -delta / WHEEL_DELTA * 40; // Default 3 lines scroll
+        const int scrollAmount = -delta / WHEEL_DELTA * 40;
 
         SCROLLINFO si = {sizeof(si), SIF_ALL};
         GetScrollInfo(m_hwndParent, SB_VERT, &si);
@@ -433,7 +449,7 @@ void ExcelLikeView::HandleMouseWheel(const WPARAM wParam)
             totalHeight += h;
         }
         const int maxScrollPos = std::max(0, static_cast<int>(totalHeight) - static_cast<int>(si.nPage));
-        m_verticalScrollPos = std::max(0, std::min(m_verticalScrollPos, maxScrollPos));
+        m_verticalScrollPos    = std::max(0, std::min(m_verticalScrollPos, maxScrollPos));
 
         if (m_verticalScrollPos != oldPos)
         {
@@ -442,4 +458,5 @@ void ExcelLikeView::HandleMouseWheel(const WPARAM wParam)
         }
     }
 }
+
 
