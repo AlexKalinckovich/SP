@@ -100,7 +100,7 @@ void AboutDialog::CreateDialogWindow()
         WNDCLASSEXW wcNew{};
         wcNew.cbSize = sizeof(WNDCLASSEXW);
         wcNew.style = CS_HREDRAW | CS_VREDRAW;
-        wcNew.lpfnWndProc = AboutDialog::StaticDlgProc;
+        wcNew.lpfnWndProc = StaticDlgProc;
         wcNew.hInstance = hInstance_;
         wcNew.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
         wcNew.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
@@ -132,15 +132,16 @@ void AboutDialog::RunMessageLoop() const
     ::EnableWindow(parent_, FALSE);
 
     MSG msg{};
-    while (::IsWindow(dlgWindow_) && ::GetMessageW(&msg, nullptr, 0, 0) > 0)
+    while (IsWindow(dlgWindow_) && GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
-        if (msg.hwnd == dlgWindow_ || ::IsChild(dlgWindow_, msg.hwnd))
+        if (msg.hwnd == dlgWindow_ || IsChild(dlgWindow_, msg.hwnd))
         {
-            ::TranslateMessage(&msg);
-            ::DispatchMessageW(&msg);
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
         }
 
-        if (!::IsWindow(dlgWindow_)) {
+        if (!IsWindow(dlgWindow_))
+        {
             break;
         }
     }
@@ -149,7 +150,7 @@ void AboutDialog::RunMessageLoop() const
     ::SetActiveWindow(parent_);
 }
 
-LRESULT CALLBACK AboutDialog::StaticDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK AboutDialog::StaticDlgProc(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam)
 {
     AboutDialog *self = nullptr;
 
@@ -168,7 +169,7 @@ LRESULT CALLBACK AboutDialog::StaticDlgProc(HWND hwnd, UINT msg, WPARAM wParam, 
     return self ? self->DlgProc(hwnd, msg, wParam, lParam) : ::DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-LRESULT AboutDialog::DlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT AboutDialog::DlgProc(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam)
 {
     const LRESULT result = messageHandler_.HandleMessage(dlgWindow_, msg, wParam, lParam);
     if (result != win32::HashMapMessageHandler::MSG_NOT_HANDLED)

@@ -6,13 +6,13 @@
 #define IDLEMONITOR_H
 
 #define WM_IDLE_TIMEOUT (WM_USER + 100)
-
 #include <windows.h>
 #include <IComponent.h>
 
 #include "win32/HashMapMessageHandler.h"
 
-class IdleMonitor : public ui::IComponent {
+
+class IdleMonitor final : public ui::IComponent {
 public:
     void InitializeMessageHandlers();
 
@@ -33,7 +33,7 @@ private:
     HWND hwndParent_ = nullptr;
     bool isPaused_ = false;
     win32::HashMapMessageHandler messageHandler_;
-    static constexpr UINT_PTR IDLE_TIMER_ID = 1001;
+    static constexpr UINT_PTR IDLE_TIMER_ID = 1005;
     static constexpr ULONGLONG IDLE_THRESHOLD_MS = 5000;
 };
 #endif //IDLEMONITOR_H

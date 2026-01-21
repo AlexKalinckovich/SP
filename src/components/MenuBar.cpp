@@ -3,18 +3,20 @@
 
 #include <windows.h>
 
+#include "meta_info/message_codes.h"
+
 MenuBar::MenuBar() = default;
 
 MenuBar::~MenuBar()
 {
     Destroy();
 }
-
-
-
 bool MenuBar::CreateEditMenu(HMENU hMenu) {
     HMENU hEdit = ::CreatePopupMenu();
-    if (hEdit == nullptr) return false;
+    if (hEdit == nullptr)
+    {
+        return false;
+    }
 
     ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_UNDO, L"Undo\tCtrl+Z");
     ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_REDO, L"Redo\tCtrl+Y");
@@ -27,19 +29,19 @@ bool MenuBar::CreateEditMenu(HMENU hMenu) {
     ::AppendMenuW(hEdit, MF_SEPARATOR, 0, nullptr);
     ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_FIND, L"Find\tCtrl+F");
     ::AppendMenuW(hEdit, MF_STRING, ID_EDIT_REPLACE, L"Replace\tCtrl+H");
-
     ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hEdit), L"Edit");
+
     return true;
 }
 
 bool MenuBar::CreateFormatMenu(HMENU hMenu) {
     HMENU hFormat = ::CreatePopupMenu();
-    if (hFormat == nullptr) return false;
+    if (hFormat == nullptr)
+    {
+        return false;
+    }
 
-    ::AppendMenuW(hFormat, MF_STRING, ID_FORMAT_FONT, L"Font...");
-    ::AppendMenuW(hFormat, MF_STRING, ID_VIEW_WORD_WRAP, L"Word Wrap");
-
-    ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hFormat), L"Format");
+    ::AppendMenuW(hMenu, MF_POPUP, ID_FORMAT_FONT, L"Fonts");
     return true;
 }
 bool MenuBar::Create()
@@ -58,6 +60,8 @@ bool MenuBar::Create()
     if (!CreateFileMenu(hMenuBar_)) return false;
     if (!CreateEditMenu(hMenuBar_)) return false;
     if (!CreateHelpMenu(hMenuBar_)) return false;
+    if (!CreateFormatMenu(hMenuBar_)) return false;
+    if (!CreateProcessInfoMenu(hMenuBar_)) return false;
 
     return true;
 }
@@ -83,7 +87,6 @@ bool MenuBar::CreateFileMenu(HMENU hMenu)
     ::AppendMenuW(hFile, MF_STRING, ID_FILE_SAVE, L"Save...\tCtrl+S");
     ::AppendMenuW(hFile, MF_SEPARATOR, 0, nullptr);
     ::AppendMenuW(hFile, MF_STRING, ID_FILE_EXIT, L"Exit");
-
     ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hFile), L"File");
     return true;
 }
@@ -98,3 +101,17 @@ bool MenuBar::CreateHelpMenu(HMENU hMenu)
     ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(hHelp), L"Help");
     return true;
 }
+
+bool MenuBar::CreateProcessInfoMenu(HMENU hMenu)
+{
+    HMENU hFormat = ::CreatePopupMenu();
+    if (hFormat == nullptr)
+    {
+        return false;
+    }
+
+    ::AppendMenuW(hMenu, MF_POPUP, ID_PROCESS_INFO, L"ProcessInfo");
+    return true;
+}
+
+

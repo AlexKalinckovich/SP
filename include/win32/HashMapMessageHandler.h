@@ -25,7 +25,7 @@ namespace win32
                 commandHandlers_[commandId] = std::move(handler);
             }
 
-            LRESULT HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) override
+            LRESULT HandleMessage(HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam) override
             {
                 if (message == WM_COMMAND)
                 {

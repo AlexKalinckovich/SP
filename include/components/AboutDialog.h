@@ -7,7 +7,7 @@
 #include <string>
 #include "win32/HashMapMessageHandler.h"
 
-class AboutDialog : public ui::IComponent
+class AboutDialog final : public ui::IComponent
 {
     public:
         AboutDialog(HINSTANCE hInstance, HWND parent);

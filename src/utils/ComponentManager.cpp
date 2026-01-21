@@ -1,7 +1,8 @@
-#include <algorithm>
 #include "utils/ComponentManager.h"
 
-void ComponentManager::AddComponent(std::shared_ptr<ui::IComponent> component)
+#include <algorithm>
+
+void ui::ComponentManager::AddComponent(std::shared_ptr<ui::IComponent> component)
 {
     if (component)
     {
@@ -9,7 +10,7 @@ void ComponentManager::AddComponent(std::shared_ptr<ui::IComponent> component)
     }
 }
 
-bool ComponentManager::RemoveComponent(const ui::IComponent* component)
+bool ui::ComponentManager::RemoveComponent(const ui::IComponent* component)
 {
     const auto it = std::ranges::remove_if(components_,
                                            [component](const std::shared_ptr<ui::IComponent> &up)
@@ -26,7 +27,7 @@ bool ComponentManager::RemoveComponent(const ui::IComponent* component)
     return true;
 }
 
-void ComponentManager::OnCreate(HWND hwndParent)
+void ui::ComponentManager::OnCreate(HWND hwndParent)
 {
     for (const std::shared_ptr<ui::IComponent> &component: components_)
     {
@@ -37,7 +38,7 @@ void ComponentManager::OnCreate(HWND hwndParent)
     }
 }
 
-void ComponentManager::OnDestroy()
+void ui::ComponentManager::OnDestroy()
 {
     for (const std::shared_ptr<ui::IComponent> &component: components_)
     {
@@ -48,7 +49,7 @@ void ComponentManager::OnDestroy()
     }
 }
 
-bool ComponentManager::OnMessage(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, LRESULT* outResult)
+bool ui::ComponentManager::OnMessage(HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, LRESULT* outResult)
 {
     bool result = false;
     for(const std::shared_ptr<ui::IComponent> &component: components_)

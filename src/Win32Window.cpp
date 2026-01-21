@@ -8,6 +8,11 @@
 #include <filesystem>
 
 #include "components/AboutDialog.h"
+#include "components/FontSelectorComponent.h"
+#include "components/ProcessInfoViewer.h"
+#include "meta_info/message_codes.h"
+#include "utils/ErrorFormatter.h"
+#include "utils/FileManager.h"
 
 namespace win32
 {
@@ -16,13 +21,15 @@ namespace win32
     , className_(std::move(className))
     , windowTitle_(std::move(windowTitle))
     , overlayWindow_(std::make_shared<OverlayWindow>(hInstance, className_ + L"_Overlay"))
-    , textEditor_(std::make_shared<TextEditorComponent>(hInstance))
+    , excelLikeView_(std::make_shared<ExcelLikeView>(10,10))
     , idleMonitor_(std::make_shared<IdleMonitor>())
     {
+        ProcessInfoViewer::Register(hInstance_);
         InitializeMessageHandlers();
         AddComponent(idleMonitor_);
         AddComponent(overlayWindow_);
-        AddComponent(textEditor_);
+        excelLikeView_->OnCreate(hwnd_);
+        AddComponent(excelLikeView_);
     }
 
 
@@ -67,13 +74,13 @@ namespace win32
 
         messageHandler_.RegisterHandler(WM_CLOSE, [this](HWND hwnd, WPARAM, LPARAM) -> LRESULT
         {
-            if (textEditor_->HasUnsavedChanges())
-            {
-                if (!textEditor_->PromptSaveIfNeeded(hwnd))
-                {
-                    return 0;
-                }
-            }
+            // if (textEditor_->HasUnsavedChanges())
+            // {
+            //     if (!textEditor_->PromptSaveIfNeeded(hwnd))
+            //     {
+            //         return 0;
+            //     }
+            // }
             ::DestroyWindow(hwnd);
             return 0;
         });
@@ -85,64 +92,80 @@ namespace win32
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_OPEN, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FILE_OPEN, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            return textEditor_->LoadFile();
+            excelLikeView_->HandleFileOpen();
+            return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_SAVE, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FILE_SAVE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            return textEditor_->SaveFile();
+            return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_FILE_EXIT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_FILE_EXIT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ::DestroyWindow(hwnd_);
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_CUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_CUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnCut();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_COPY, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_COPY, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnCopy();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_PASTE, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_PASTE, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnPaste();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_UNDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_UNDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnUndo();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_REDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_REDO, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnRedo();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_EDIT_SELECT_ALL, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_EDIT_SELECT_ALL, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
-            textEditor_->OnSelectAll();
             return 0;
         });
 
-        messageHandler_.RegisterCommandHandler(MenuBar::ID_HELP_ABOUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        messageHandler_.RegisterCommandHandler(ID_HELP_ABOUT, [this](HWND, WPARAM, LPARAM) -> LRESULT
         {
             ShowAboutDialog();
             return 0;
         });
 
+        messageHandler_.RegisterCommandHandler(ID_FORMAT_FONT, [this](HWND, WPARAM, LPARAM) -> LRESULT
+        {
+            ShowFontDialog();
+            return 0;
+        });
+
+        messageHandler_.RegisterCommandHandler(ID_PROCESS_INFO, [this](HWND hWnd, WPARAM, LPARAM) -> LRESULT
+        {
+            HINSTANCE hInstance = (HINSTANCE) GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+
+            RECT rcParent;
+            GetWindowRect(hWnd, &rcParent);
+            constexpr int childWidth = 350;
+            constexpr int childHeight = 400;
+            const int x = rcParent.left + (rcParent.right - rcParent.left - childWidth) / 2;
+            const int y = rcParent.top + (rcParent.bottom - rcParent.top - childHeight) / 2;
+            ProcessInfoViewer dialog(hInstance, hWnd);
+            dialog.ShowModal(x, y, childWidth, childHeight);
+
+            return 0;
+        });
 
     }
 
@@ -249,13 +272,16 @@ namespace win32
     }
 
 
-    LRESULT CALLBACK Win32Window::StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
+    LRESULT CALLBACK Win32Window::StaticWndProc(HWND hwnd,
+                                                const UINT msg,
+                                                const WPARAM wParam,
+                                                const LPARAM lParam) noexcept
     {
         Win32Window* self = nullptr;
 
         if (msg == WM_NCCREATE)
         {
-            const auto* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
+            const CREATESTRUCTW *cs = reinterpret_cast<CREATESTRUCTW *>(lParam);
             self = static_cast<Win32Window*>(cs->lpCreateParams);
             ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
             self->hwnd_ = hwnd;
@@ -265,12 +291,38 @@ namespace win32
             self = reinterpret_cast<Win32Window*>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
         }
 
-        return self ? self->HandleMessage(msg, wParam, lParam) : ::DefWindowProcW(hwnd, msg, wParam, lParam);
+        LRESULT result;
+        if (self)
+        {
+            result = self->HandleMessage(msg, wParam, lParam);
+        }
+        else
+        {
+            result = ::DefWindowProcW(hwnd, msg, wParam, lParam);
+        }
+        return result;
     }
     void Win32Window::ShowAboutDialog() const
     {
         AboutDialog about(hInstance_, hwnd_);
         about.Show();
     }
+
+    void Win32Window::ShowFontDialog() const
+    {
+        const std::filesystem::path fontDirectory = LR"(C:\Users\brota\CLionProjects\SP\meta-info)";
+
+        FontSelectorDialog dialog(hInstance_, hwnd_, fontDirectory);
+        const std::optional<std::wstring> selectedFontName = dialog.ShowModal();
+
+        if (selectedFontName.has_value())
+        {
+            const std::wstring fontPath = fontDirectory / (selectedFontName.value() + L".ttf");
+            const std::wstring& fontName = selectedFontName.value();
+
+            this->excelLikeView_->SetFont(fontName, 36);
+        }
+    }
+
 
 } // namespace win32
